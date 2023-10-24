@@ -37,10 +37,11 @@ def run():
     with torch.no_grad():
         if opt.update:  # update all models (to fix SourceChangeWarning)
             for opt.weights in ['yolov7.pt']:
-                detect(opt)
+                save_dir = detect(opt)
                 strip_optimizer(opt.weights)
         else:
-            detect(opt)
+            save_dir = detect(opt)
+    return save_dir + "\zidane.jpg"
 
 with gr.Blocks() as demo:
     gr.Markdown(
@@ -48,7 +49,10 @@ with gr.Blocks() as demo:
     # YOLO7
     """)
     bStart = gr.Button(label="Start")
-    bStart.click(run)
+    with gr.Row():
+        im = gr.Image()
+        im2 = gr.Image(type='filepath')
+    bStart.click(run, outputs=[im2])
     demo.load()
 
 if __name__== "__main__" :
