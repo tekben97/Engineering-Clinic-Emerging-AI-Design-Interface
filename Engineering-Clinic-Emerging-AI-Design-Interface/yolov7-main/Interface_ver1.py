@@ -1,6 +1,7 @@
 import gradio as gr
 import argparse
 import sys
+import os
 sys.path.append('./')  # to run '$ python *.py' files in subdirectories
 
 from ourDetect import detect
@@ -10,10 +11,10 @@ from utils.general import strip_optimizer
 
 
 
-def run():
+def run(im_name):
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', nargs='+', type=str, default='yolov7.pt', help='model.pt path(s)')
-    parser.add_argument('--source', type=str, default='inference/images', help='source')  # file/folder, 0 for webcam
+    parser.add_argument('--source', type=str, default='inference/images/'+im_name, help='source')  # file/folder, 0 for webcam
     parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=0.25, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.45, help='IOU threshold for NMS')
@@ -41,18 +42,19 @@ def run():
                 strip_optimizer(opt.weights)
         else:
             save_dir = detect(opt)
-    return save_dir + "\zidane.jpg"
+    return save_dir + "\\" + im_name
 
 with gr.Blocks() as demo:
     gr.Markdown(
     """
-    # YOLO7
+    # Image Interface for YOLO7
     """)
-    bStart = gr.Button(label="Start")
     with gr.Row():
-        im = gr.Image()
-        im2 = gr.Image(type='filepath')
-    bStart.click(run, outputs=[im2])
+        im_input = gr.Radio(label="Image",
+                      choices=['bus.jpg','horses.jpg','image1.jpg','image2.jpg','image3.jpg','zidane.jpg'], value='bus.jpg')
+        im_output = gr.Image(type='filepath',label="Output Image")
+    bStart = gr.Button(label="Start")
+    bStart.click(run, inputs=[im_input], outputs=[im_output])
     demo.load()
 
 if __name__== "__main__" :
