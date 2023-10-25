@@ -47,7 +47,7 @@ def run_image(image):
                 strip_optimizer(opt.weights)
         else:
             save_dir = detect(opt)
-    return save_dir + "\\temp.jpg"
+    return save_dir
 
 def run_video(video):
     parser = argparse.ArgumentParser()
@@ -80,7 +80,7 @@ def run_video(video):
                 strip_optimizer(opt.weights)
         else:
             save_dir = detect(opt)
-    return save_dir + "\\sample-5s.mp4"
+    return save_dir
 
 with gr.Blocks(title="YOLO7 Interface") as demo:
     gr.Markdown(
@@ -95,7 +95,7 @@ with gr.Blocks(title="YOLO7 Interface") as demo:
         vid_output = gr.Video(label="Output Video",show_share_button=True)
     with gr.Row() as im_row:
         im_input = gr.Image(type='filepath',label="Input Image",show_download_button=True,show_share_button=True,interactive=True)
-        im_output = gr.Image(type='filepath',label="Output Image",show_download_button=True,show_share_button=True)
+        im_output = gr.Image(type='filepath',label="Output Image",show_download_button=True,show_share_button=True,interactive=False)
     with gr.Row(visible=False) as vid_start:
         vid_but = gr.Button(label="Start")
     with gr.Row() as im_start:
@@ -121,4 +121,4 @@ with gr.Blocks(title="YOLO7 Interface") as demo:
     demo.load()
 
 if __name__== "__main__" :
-    demo.launch() 
+    demo.queue().launch() 
