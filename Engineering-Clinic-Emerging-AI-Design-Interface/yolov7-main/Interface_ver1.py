@@ -1,25 +1,23 @@
 import gradio as gr
 import argparse
 import sys
-from PIL import Image
+import os
+import ffmpeg
 sys.path.append('./')  # to run '$ python *.py' files in subdirectories
 
 from ourDetect import detect
 import torch
-import cv2
 
 from utils.general import strip_optimizer
 
-import shutil
-
-
+def correct_video(video):
+    os.system("ffmpeg -i {file_str} -y -vcodec libx264 -acodec aac {file_str}.mp4".format(file_str = video))
+    return video
 
 def run_image(image):
-    im1 = Image.open(image)
-    im1 = im1.save("inference/images/temp.jpg")  
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', nargs='+', type=str, default='yolov7.pt', help='model.pt path(s)')
-    parser.add_argument('--source', type=str, default='inference/images/temp.jpg', help='source')  # file/folder, 0 for webcam
+    parser.add_argument('--source', type=str, default=image, help='source')  # file/folder, 0 for webcam
     parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=0.25, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.45, help='IOU threshold for NMS')
@@ -50,9 +48,10 @@ def run_image(image):
     return save_dir
 
 def run_video(video):
+    video = correct_video(video)
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', nargs='+', type=str, default='yolov7.pt', help='model.pt path(s)')
-    parser.add_argument('--source', type=str, default='inference/videos/sample-5s.mp4', help='source')  # file/folder, 0 for webcam
+    parser.add_argument('--source', type=str, default=video, help='source')  # file/folder, 0 for webcam
     parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=0.25, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.45, help='IOU threshold for NMS')
@@ -98,26 +97,58 @@ with gr.Blocks(title="YOLO7 Interface") as demo:
         im_output = gr.Image(type='filepath',label="Output Image",show_download_button=True,show_share_button=True,interactive=False)
     with gr.Row(visible=False) as vid_start:
         vid_but = gr.Button(label="Start")
+        gr.ClearButton(components=[
+                   vid_input, vid_output, im_input, im_output],
+                   interactive=True, visible=True)
     with gr.Row() as im_start:
         im_but = gr.Button(label="Start")
+        gr.ClearButton(components=[
+                   vid_input, vid_output, im_input, im_output],
+                   interactive=True, visible=True)
+    with gr.Row() as img_exs:
+        im_ex = gr.Examples(label="Image Examples",
+                    examples=['inference/images/zidane.jpg',
+                            'inference/images/image1.jpg',
+                            'inference/images/image2.jpg',
+                            'inference/images/image3.jpg',
+                            'inference/images/bus.jpg',
+                            'inference/images/horses.jpg'], 
+                            inputs=[im_input], 
+                            outputs=[im_output], 
+                            fn=run_image, 
+                            cache_examples=True)
+    with gr.Row(visible=False) as vid_exs:
+        vid_ex = gr.Examples(label="Video Examples",
+                    examples=["inference/videos/ducks.mp4",
+                              "inference/videos/sample-5s.mp4"], 
+                            inputs=[vid_input], 
+                            outputs=[vid_output], 
+                            fn=run_video, 
+                            cache_examples=True)
+        
     def change_file_type(type):
         if type == "Image":
             return {
                 im_row: gr.Row.update(visible=True),
                 vid_row: gr.Row.update(visible=False),
                 im_start: gr.Row.update(visible=True),
-                vid_start: gr.Row.update(visible=False)
+                vid_start: gr.Row.update(visible=False),
+                img_exs: gr.Row.update(visible=True),
+                vid_exs: gr.Row.update(visible=False)
             }
         else:
             return {
                 im_row: gr.Row.update(visible=False),
                 vid_row: gr.Row.update(visible=True),
                 im_start: gr.Row.update(visible=False),
-                vid_start: gr.Row.update(visible=True)
+                vid_start: gr.Row.update(visible=True),
+                img_exs: gr.Row.update(visible=False),
+                vid_exs: gr.Row.update(visible=True)
             }
-    file_type.input(change_file_type, show_progress=True, inputs=[file_type], outputs=[im_row, vid_row, im_start, vid_start])
+    file_type.input(change_file_type, show_progress=True, inputs=[file_type], outputs=[im_row, vid_row, im_start, vid_start, img_exs, vid_exs])
     im_but.click(run_image, inputs=[im_input], outputs=[im_output])
     vid_but.click(run_video, inputs=[vid_input], outputs=[vid_output])
+    vid_input.upload(correct_video, inputs=[vid_input], outputs=[vid_input])
     demo.load()
 
 if __name__== "__main__" :
