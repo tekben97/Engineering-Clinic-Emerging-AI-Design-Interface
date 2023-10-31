@@ -14,13 +14,13 @@ def correct_video(video):
     os.system("ffmpeg -i {file_str} -y -vcodec libx264 -acodec aac {file_str}.mp4".format(file_str = video))
     return video
 
-def run_image(image, inf_size, obj_conf_thr):
+def run_image(image, inf_size, obj_conf_thr, iou_thr):
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', nargs='+', type=str, default='yolov7.pt', help='model.pt path(s)')
     parser.add_argument('--source', type=str, default=image, help='source')  # file/folder, 0 for webcam
     parser.add_argument('--img-size', type=int, default=int(inf_size), help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=obj_conf_thr, help='object confidence threshold')
-    parser.add_argument('--iou-thres', type=float, default=0.45, help='IOU threshold for NMS')
+    parser.add_argument('--iou-thres', type=float, default=iou_thr, help='IOU threshold for NMS')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--view-img', action='store_true', help='display results')
     parser.add_argument('--save-txt', action='store_true', help='save results to *.txt')
@@ -47,14 +47,14 @@ def run_image(image, inf_size, obj_conf_thr):
             save_dir = detect(opt)
     return save_dir
 
-def run_video(video):
+def run_video(video, inf_size, obj_conf_thr, iou_thr):
     video = correct_video(video)
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', nargs='+', type=str, default='yolov7.pt', help='model.pt path(s)')
     parser.add_argument('--source', type=str, default=video, help='source')  # file/folder, 0 for webcam
-    parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
-    parser.add_argument('--conf-thres', type=float, default=0.25, help='object confidence threshold')
-    parser.add_argument('--iou-thres', type=float, default=0.45, help='IOU threshold for NMS')
+    parser.add_argument('--img-size', type=int, default=inf_size, help='inference size (pixels)')
+    parser.add_argument('--conf-thres', type=float, default=obj_conf_thr, help='object confidence threshold')
+    parser.add_argument('--iou-thres', type=float, default=iou_thr, help='IOU threshold for NMS')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--view-img', action='store_true', help='display results')
     parser.add_argument('--save-txt', action='store_true', help='save results to *.txt')
@@ -128,6 +128,7 @@ with gr.Blocks(title="YOLO7 Interface") as demo:
     with gr.Row() as settings:
         inf_size = gr.Number(label='Inference Size (pixels)',value=640,precision=0)
         obj_conf_thr = gr.Number(label='Object Confidence Threshold',value=0.25)
+        iou_thr = gr.Number(label='IOU threshold for NMS',value=0.45)
         
     def change_file_type(type):
         if type == "Image":
@@ -149,8 +150,8 @@ with gr.Blocks(title="YOLO7 Interface") as demo:
                 vid_exs: gr.Row.update(visible=True)
             }
     file_type.input(change_file_type, show_progress=True, inputs=[file_type], outputs=[im_row, vid_row, im_start, vid_start, img_exs, vid_exs])
-    im_but.click(run_image, inputs=[im_input, inf_size, obj_conf_thr], outputs=[im_output])
-    vid_but.click(run_video, inputs=[vid_input], outputs=[vid_output])
+    im_but.click(run_image, inputs=[im_input, inf_size, obj_conf_thr, iou_thr], outputs=[im_output])
+    vid_but.click(run_video, inputs=[vid_input, inf_size, obj_conf_thr, iou_thr], outputs=[vid_output])
     vid_input.upload(correct_video, inputs=[vid_input], outputs=[vid_input])
     demo.load()
 
