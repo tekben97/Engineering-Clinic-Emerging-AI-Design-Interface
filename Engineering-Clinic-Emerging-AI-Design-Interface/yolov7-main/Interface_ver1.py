@@ -98,7 +98,10 @@ def run_video(video, src, inf_size, obj_conf_thr, iou_thr, agnostic_nms):
         inf_size (int): The size of the inference
         obj_conf_thr (float): The object confidence threshold
         iou_thr (float): The intersection of union number
+<<<<<<< HEAD
         agnostic_nms (bool): The agnostic nms boolean
+=======
+>>>>>>> 3d7693285e1b63fd57598709af98cd02ade82480
 
     Returns:
         str: The file path of the output video
