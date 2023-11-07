@@ -20,7 +20,7 @@ from utils.general import check_img_size, check_requirements, check_imshow, non_
     scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
-from smooth_grad import returnSmoothGrad
+from smooth_grad import returnSmoothGrad, generate_vanilla_grad
 
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
@@ -128,7 +128,7 @@ def detect(opt, save_img=False):
     if half:
         model.half()  # to FP16
     
-
+    
     # Second-stage classifier
     classify = False
     if classify:
@@ -204,18 +204,11 @@ def detect(opt, save_img=False):
                     n = (det[:, -1] == c).sum()  # detections per class
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
                 
-                pil_img = Image.fromarray(im0)
-                pil_img = pil_img.resize((imgsz,480))
-                img_ = np.array(pil_img)
-                img_ = torch.from_numpy(np.transpose(img_,(2,0,1))).to(device)
-                img_ = img_.half() if half else img_.float()  # uint8 to fp16/32
-                img_ /= 255.0  # 0 - 255 to 0.0 - 1.0
-                if img_.ndimension() == 3:
-                    img_ = img_.unsqueeze(0)
                 model.train()
-                smooth_gradient = returnSmoothGrad(img=img_,model=model, augment=opt.augment)
-                model.eval()
+                # smooth_gradient = returnSmoothGrad(img=img_,model=model, augment=opt.augment)
+                smooth_gradient = generate_vanilla_grad(model=model, input_tensor=img, targets=None, norm=False, device=device)
                 torchvision.utils.save_image(smooth_gradient,fp="runs\\detect\\exp\\smoothGrad.jpg")
+                model.eval()
                 
                 # Write results
                 for *xyxy, conf, cls in reversed(det):

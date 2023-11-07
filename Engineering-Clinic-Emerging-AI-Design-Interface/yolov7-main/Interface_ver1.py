@@ -77,15 +77,15 @@ def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
     parser.add_argument('--no-trace', action='store_true', help='don`t trace model')
     opt = parser.parse_args()
+    opt.no_trace = True
     print(opt)
     #check_requirements(exclude=('pycocotools', 'thop'))
-    with torch.no_grad():
-        if opt.update:  # update all models (to fix SourceChangeWarning)
-            for opt.weights in ['yolov7.pt']:
-                save_dir, smooth_dir = detect(opt)
-                strip_optimizer(opt.weights)
-        else:
+    if opt.update:  # update all models (to fix SourceChangeWarning)
+        for opt.weights in ['yolov7.pt']:
             save_dir, smooth_dir = detect(opt)
+            strip_optimizer(opt.weights)
+    else:
+        save_dir, smooth_dir = detect(opt)
     return [save_dir, new_dir, smooth_dir]
 
 def run_video(video, src, inf_size, obj_conf_thr, iou_thr, agnostic_nms):
@@ -185,11 +185,11 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
     with gr.Row() as im_tot_start:
         with gr.Row(visible=False) as im_web_start:
             im_web_but = gr.Button(label="Start")
-            gr.ClearButton(components=[im_web_input, im_output, im_conv_output],
+            gr.ClearButton(components=[im_web_input, im_output, im_conv_output, im_smooth_output],
                     interactive=True, visible=True)
         with gr.Row() as im_com_start:
             im_com_but = gr.Button(label="Start")
-            gr.ClearButton(components=[im_com_input, im_output, im_conv_output],
+            gr.ClearButton(components=[im_com_input, im_output, im_conv_output, im_smooth_output],
                     interactive=True, visible=True)
     with gr.Row() as settings:
         inf_size = gr.Number(label='Inference Size (pixels)',value=640,precision=0)
@@ -286,9 +286,9 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
         return "runs\\detect\\exp\\layors\\layor" + str(int(int(layor) - 1)) + '.jpg'
     file_type.input(change_file_type, show_progress=True, inputs=[file_type, source_type], outputs=[im_tot_row, vid_tot_row, im_tot_start, vid_tot_start, vid_com_row, vid_web_row, im_com_row, im_web_row, vid_web_start, vid_com_start, im_web_start, im_com_start, conv_layor])
     source_type.input(change_file_type, show_progress=True, inputs=[file_type, source_type], outputs=[im_tot_row, vid_tot_row, im_tot_start, vid_tot_start, vid_com_row, vid_web_row, im_com_row, im_web_row, vid_web_start, vid_com_start, im_web_start, im_com_start, conv_layor])
-    im_com_but.click(run_image, inputs=[im_com_input, source_type, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms], outputs=[im_output, im_conv_output])
+    im_com_but.click(run_image, inputs=[im_com_input, source_type, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms], outputs=[im_output, im_conv_output, im_smooth_output])
     vid_com_but.click(run_video, inputs=[vid_com_input, source_type, inf_size, obj_conf_thr, iou_thr, agnostic_nms], outputs=[vid_output])
-    im_web_but.click(run_image, inputs=[im_web_input, source_type, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms], outputs=[im_output, im_conv_output])
+    im_web_but.click(run_image, inputs=[im_web_input, source_type, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms], outputs=[im_output, im_conv_output, im_smooth_output])
     vid_web_but.click(run_video, inputs=[vid_web_input, source_type, inf_size, obj_conf_thr, iou_thr, agnostic_nms], outputs=[vid_output])
     vid_com_input.upload(correct_video, inputs=[vid_com_input], outputs=[vid_com_input])
     vid_web_input.upload(correct_video, inputs=[vid_web_input], outputs=[vid_web_input])
@@ -296,7 +296,7 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
     demo.load()
 
 if __name__== "__main__" :
-    if False:
+    if True:
         demo.queue().launch() 
     else:
-        run_image("inference\\images\\bus.jpg","Computer",640,0.45,0.25,1)
+        run_image("inference\\images\\bus.jpg","Computer",640,0.45,0.25,1,True)
