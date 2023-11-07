@@ -17,12 +17,19 @@ def correct_video(video):
     os.system("ffmpeg -i {file_str} -y -vcodec libx264 -acodec aac {file_str}.mp4".format(file_str = video))
     return video+".mp4"
 
-def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor):
+def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms):
+    obj_conf_thr = float(obj_conf_thr)
+    iou_thr = float(iou_thr)
+    agnostic_nms = bool(agnostic_nms)
     if src == "Webcam":
         image.save('Temp.jpg')  # Convert PIL image to OpenCV format if needed
         image = 'Temp.jpg'
     random = Image.open(image)
     new_dir = generate_feature_maps(random, conv_layor)
+    if agnostic_nms:
+        agnostic_nms = 'store_true'
+    else:
+        agnostic_nms = 'store_false'
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', nargs='+', type=str, default='yolov7.pt', help='model.pt path(s)')
     parser.add_argument('--source', type=str, default=image, help='source')  # file/folder, 0 for webcam
@@ -35,7 +42,7 @@ def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor):
     parser.add_argument('--save-conf', action='store_true', help='save confidences in --save-txt labels')
     parser.add_argument('--nosave', action='store_true', help='do not save images/videos')
     parser.add_argument('--classes', nargs='+', type=int, help='filter by class: --class 0, or --class 0 2 3')
-    parser.add_argument('--agnostic-nms', action='store_true', help='class-agnostic NMS')
+    parser.add_argument('--agnostic-nms', action=agnostic_nms, help='class-agnostic NMS')
     parser.add_argument('--augment', action='store_true', help='augmented inference')
     parser.add_argument('--update', action='store_true', help='update all models')
     parser.add_argument('--project', default='runs/detect', help='save results to project/name')
@@ -55,9 +62,16 @@ def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor):
             save_dir = detect(opt)
     return [save_dir, new_dir]
 
-def run_video(video, src, inf_size, obj_conf_thr, iou_thr):
+def run_video(video, src, inf_size, obj_conf_thr, iou_thr, agnostic_nms):
+    obj_conf_thr = float(obj_conf_thr)
+    iou_thr = float(iou_thr)
+    agnostic_nms = bool(agnostic_nms)
     if src == "Webcam":
         video = correct_video(video)
+    if agnostic_nms:
+        agnostic_nms = 'store_true'
+    else:
+        agnostic_nms = 'store_false'
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', nargs='+', type=str, default='yolov7.pt', help='model.pt path(s)')
     parser.add_argument('--source', type=str, default=video, help='source')  # file/folder, 0 for webcam
@@ -70,7 +84,7 @@ def run_video(video, src, inf_size, obj_conf_thr, iou_thr):
     parser.add_argument('--save-conf', action='store_true', help='save confidences in --save-txt labels')
     parser.add_argument('--nosave', action='store_true', help='do not save images/videos')
     parser.add_argument('--classes', nargs='+', type=int, help='filter by class: --class 0, or --class 0 2 3')
-    parser.add_argument('--agnostic-nms', action='store_true', help='class-agnostic NMS')
+    parser.add_argument('--agnostic-nms', action=agnostic_nms, help='class-agnostic NMS')
     parser.add_argument('--augment', action='store_true', help='augmented inference')
     parser.add_argument('--update', action='store_true', help='update all models')
     parser.add_argument('--project', default='runs/detect', help='save results to project/name')
@@ -137,6 +151,7 @@ with gr.Blocks(title="YOLO7 Interface") as demo:
         inf_size = gr.Number(label='Inference Size (pixels)',value=640,precision=0)
         obj_conf_thr = gr.Number(label='Object Confidence Threshold',value=0.25)
         iou_thr = gr.Number(label='IOU threshold for NMS',value=0.45) 
+        agnostic_nms = gr.Checkbox(label='Agnostic NMS',value=True)
     def change_file_type(file, source):
         if file == "Image":
             if source == "Computer":
@@ -208,10 +223,10 @@ with gr.Blocks(title="YOLO7 Interface") as demo:
         return "runs\\detect\\exp\\layors\\layor" + str(int(int(layor) - 1)) + '.jpg'
     file_type.input(change_file_type, show_progress=True, inputs=[file_type, source_type], outputs=[im_tot_row, vid_tot_row, im_tot_start, vid_tot_start, vid_com_row, vid_web_row, im_com_row, im_web_row, vid_web_start, vid_com_start, im_web_start, im_com_start, conv_layor])
     source_type.input(change_file_type, show_progress=True, inputs=[file_type, source_type], outputs=[im_tot_row, vid_tot_row, im_tot_start, vid_tot_start, vid_com_row, vid_web_row, im_com_row, im_web_row, vid_web_start, vid_com_start, im_web_start, im_com_start, conv_layor])
-    im_com_but.click(run_image, inputs=[im_com_input, source_type, inf_size, obj_conf_thr, iou_thr, conv_layor], outputs=[im_output, im_conv_output])
-    vid_com_but.click(run_video, inputs=[vid_com_input, source_type, inf_size, obj_conf_thr, iou_thr], outputs=[vid_output])
-    im_web_but.click(run_image, inputs=[im_web_input, source_type, inf_size, obj_conf_thr, iou_thr, conv_layor], outputs=[im_output, im_conv_output])
-    vid_web_but.click(run_video, inputs=[vid_web_input, source_type, inf_size, obj_conf_thr, iou_thr], outputs=[vid_output])
+    im_com_but.click(run_image, inputs=[im_com_input, source_type, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms], outputs=[im_output, im_conv_output])
+    vid_com_but.click(run_video, inputs=[vid_com_input, source_type, inf_size, obj_conf_thr, iou_thr, agnostic_nms], outputs=[vid_output])
+    im_web_but.click(run_image, inputs=[im_web_input, source_type, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms], outputs=[im_output, im_conv_output])
+    vid_web_but.click(run_video, inputs=[vid_web_input, source_type, inf_size, obj_conf_thr, iou_thr, agnostic_nms], outputs=[vid_output])
     vid_com_input.upload(correct_video, inputs=[vid_com_input], outputs=[vid_com_input])
     vid_web_input.upload(correct_video, inputs=[vid_web_input], outputs=[vid_web_input])
     conv_layor.input(change_conv_layor, conv_layor, im_conv_output)
