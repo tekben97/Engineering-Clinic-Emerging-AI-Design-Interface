@@ -34,7 +34,6 @@ def generate_feature_maps(img, con_layor):
     plt.imshow(image)
 
     model = models.resnet18(pretrained=True)
-    print(model)
 
     # we will save the conv layer weights in this list
     model_weights =[]
@@ -57,16 +56,12 @@ def generate_feature_maps(img, con_layor):
                         counter+=1
                         model_weights.append(child.weight)
                         conv_layers.append(child)
-    print(f"Total convolution layers: {counter}")
-    print("conv_layers")
 
     device = torch.device('cpu')
     model = model.to(device)
 
     image = transform(image)
-    print(f"Image shape before: {image.shape}")
     image = image.unsqueeze(0)
-    print(f"Image shape after: {image.shape}")
     image = image.to(device)
 
     outputs = []
@@ -75,10 +70,6 @@ def generate_feature_maps(img, con_layor):
         image = layer(image)
         outputs.append(image)
         names.append(str(layer))
-    print(len(outputs))
-    #print feature_maps
-    for feature_map in outputs:
-        print(feature_map.shape)
 
     processed = []
     for feature_map in outputs:
@@ -86,8 +77,6 @@ def generate_feature_maps(img, con_layor):
         gray_scale = torch.sum(feature_map,0)
         gray_scale = gray_scale / feature_map.shape[0]
         processed.append(gray_scale.data.cpu().numpy())
-    for fm in processed:
-        print(fm.shape)
 
     # Plot and save feature maps for each layer
     for i, (fm, name) in enumerate(zip(processed, names)):
@@ -100,6 +89,7 @@ def generate_feature_maps(img, con_layor):
         plt.close(fig)  # Close the figure after saving
     
     this_dir = "runs\\detect\\exp\\layors\\layor" + str(int(int(con_layor) - 1)) + '.jpg'
+    print("Convolutional Layors Generated")
     return this_dir
 
 def detect(opt, save_img=False):
@@ -257,10 +247,3 @@ def detect(opt, save_img=False):
 
     print(f'Done. ({time.time() - t0:.3f}s)')
     return [str(save_path), "runs\\detect\\exp\\smoothGrad.jpg"]
-# temp_img = Image.open(opt.source)
-#     temp_img = temp_img.resize((imgsz,imgsz))
-#     convert_tensor = transforms.ToTensor()
-#     temp_img = convert_tensor(temp_img)
-#     # criterion = nn.CrossEntropyLoss()
-
-#     
