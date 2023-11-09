@@ -194,12 +194,6 @@ def detect(opt, save_img=False):
                     n = (det[:, -1] == c).sum()  # detections per class
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
                 
-                model.train()
-                # smooth_gradient = returnSmoothGrad(img=img_,model=model, augment=opt.augment)
-                smooth_gradient = generate_vanilla_grad(model=model, input_tensor=img, targets=None, norm=False, device=device)
-                torchvision.utils.save_image(smooth_gradient,fp="runs\\detect\\exp\\smoothGrad.jpg")
-                model.eval()
-                
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
                     if save_txt:  # Write to file
@@ -226,6 +220,10 @@ def detect(opt, save_img=False):
                 if dataset.mode == 'image':
                     cv2.imwrite(save_path, im0)
                     print(f" The image with the result is saved in: {save_path}")
+                    model.train()
+                    smooth_gradient = generate_vanilla_grad(model=model, input_tensor=img, targets=None, norm=False, device=device)
+                    torchvision.utils.save_image(smooth_gradient,fp="runs\\detect\\exp\\smoothGrad.jpg")
+                    model.eval()
                 else:  # 'video' or 'stream'
                     if vid_path != save_path:  # new video
                         vid_path = save_path
@@ -240,10 +238,13 @@ def detect(opt, save_img=False):
                             save_path += '.mp4'
                         vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'h264'), fps, (w, h))
                     vid_writer.write(im0)
+                    
 
     if save_txt or save_img:
         s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
         print(f"Results saved to {save_dir}{s}")
-
-    print(f'Done. ({time.time() - t0:.3f}s)')
-    return [str(save_path), "runs\\detect\\exp\\smoothGrad.jpg"]
+    if dataset.mode == 'image':
+        print(f'Done. ({time.time() - t0:.3f}s)')
+        return [str(save_path), "runs\\detect\\exp\\smoothGrad.jpg"]
+    else:
+        return str(save_path)
