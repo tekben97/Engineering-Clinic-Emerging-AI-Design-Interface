@@ -92,7 +92,7 @@ def generate_feature_maps(img, con_layor):
     print("Convolutional Layors Generated")
     return this_dir
 
-def detect(opt, save_img=False):
+def detect(opt, is_stream, save_img=False):
     source, weights, view_img, save_txt, imgsz, trace = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size, not opt.no_trace
     save_img = not opt.nosave and not source.endswith('.txt')  # save inference images
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
@@ -220,10 +220,11 @@ def detect(opt, save_img=False):
                 if dataset.mode == 'image':
                     cv2.imwrite(save_path, im0)
                     print(f" The image with the result is saved in: {save_path}")
-                    model.train()
-                    smooth_gradient = generate_vanilla_grad(model=model, input_tensor=img, targets=None, norm=False, device=device)
-                    torchvision.utils.save_image(smooth_gradient,fp="runs\\detect\\exp\\smoothGrad.jpg")
-                    model.eval()
+                    if not is_stream:
+                        model.train()
+                        smooth_gradient = generate_vanilla_grad(model=model, input_tensor=img, targets=None, norm=False, device=device)
+                        torchvision.utils.save_image(smooth_gradient,fp="runs\\detect\\exp\\smoothGrad.jpg")
+                        model.eval()
                 else:  # 'video' or 'stream'
                     if vid_path != save_path:  # new video
                         vid_path = save_path
