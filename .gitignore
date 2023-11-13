@@ -50,7 +50,6 @@ ffmpeg.exe
 individual_work/asien/run_images/exp/image.png
 individual_work/asien/run_images/exp2/image.png
 .gitignore
-smooth_grad.py
 outputs/runs/detect/exp/0.mp4
 outputs/runs/detect/exp/bus.jpg
 outputs/runs/detect/exp/image.png
