@@ -26,6 +26,13 @@ def correct_video(video):
     os.system("ffmpeg -i {file_str} -y -vcodec libx264 -acodec aac {file_str}.mp4".format(file_str = video))
     return video+".mp4"
 
+def run_stream(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, is_stream):
+    if is_stream:
+        return run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, is_stream)
+    else:
+        pass
+    
+
 def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, is_stream):
     """
     Takes an image (from upload or webcam), and outputs the yolo7 boxed output and the convolution layers
@@ -176,7 +183,7 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
         with gr.Row() as im_com_row:
             im_com_input = gr.Image(source="upload",type='filepath',label="Input Image",show_download_button=True,show_share_button=True,interactive=True)
         with gr.Row() as im_out_row:
-            im_output = gr.Image(type='filepath',label="Output Image",show_download_button=True,show_share_button=True,interactive=False)
+            im_output = gr.Image(type='filepath',label="Output Image",show_download_button=True,show_share_button=True,interactive=False, visible=True)
             im_conv_output = gr.Image(type='filepath',label="Output Convolution",show_download_button=True,show_share_button=True,interactive=False)
             im_smooth_output = gr.Image(type='filepath',label="Output Smooth Gradient",show_download_button=True,show_share_button=True,interactive=False)
     with gr.Row(visible=False) as vid_tot_start:
@@ -302,7 +309,7 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
                             im_com_start: gr.Row.update(visible=False),
                             conv_layor: gr.Slider(visible=False),
                             video_stream: gr.Checkbox(visible=True),
-                            vid_streaming: gr.Image(visible=True, streaming=True),
+                            vid_streaming: gr.Image(source='webcam', visible=True, streaming=True),
                             vid_web_input: gr.Video(visible=False),
                             im_out_row: gr.Row.update(visible=True),
                             im_conv_output: gr.Image(visible=False),
@@ -355,8 +362,8 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
     vid_com_input.upload(correct_video, inputs=[vid_com_input], outputs=[vid_com_input])
     vid_web_input.upload(correct_video, inputs=[vid_web_input], outputs=[vid_web_input])
     conv_layor.input(change_conv_layor, conv_layor, im_conv_output)
-    vid_streaming.stream(run_image, inputs=[vid_streaming, source_type, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, video_stream], outputs=[im_output])
-    demo.load()
+    vid_streaming.stream(run_stream, inputs=[vid_streaming, source_type, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, video_stream], outputs=[im_output])
+    demo.load(change_file_type, show_progress=True, inputs=[file_type, source_type, video_stream], outputs=[im_tot_row, vid_tot_row, im_tot_start, vid_tot_start, vid_com_row, vid_web_row, im_com_row, im_web_row, vid_web_start, vid_com_start, im_web_start, im_com_start, conv_layor, video_stream, vid_streaming, vid_web_input, im_out_row, im_conv_output, im_smooth_output, vid_output] )
 
 if __name__== "__main__" :
     if True:
