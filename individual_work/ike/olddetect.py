@@ -9,6 +9,10 @@ import torch.backends.cudnn as cudnn
 import numpy as np
 from numpy import random
 
+import sys
+sys.path.append('./')
+sys.path.append('yolov7-main')
+
 
 from models.experimental import attempt_load
 from utils.datasets import LoadStreams, LoadImages
@@ -54,7 +58,7 @@ def detect(input_image=None, input_Webcam=None):
     half = device.type != 'cpu'  # half precision only supported on CUDA
 
     # Load model
-    weights = 'C:/Users/chine/Desktop/PythonScripts/captum_tutorial/yolov7-main/yolov7.pt'
+    weights = 'yolov7.pt'
     imgsz = 640
     model = attempt_load(weights, map_location=device)  # load FP32 model
     stride = int(model.stride.max())  # model stride

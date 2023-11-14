@@ -73,3 +73,9 @@ outputs/runs/detect/exp/layors/layor13.jpg
 outputs/runs/detect/exp/layors/layor14.jpg
 outputs/runs/detect/exp/layors/layor15.jpg
 outputs/runs/detect/exp/layors/layor16.jpg
+__pycache__/ourDetect.cpython-311.pyc
+__pycache__/smooth_grad.cpython-311.pyc
+outputs/runs/detect/exp/layors/layor0.jpg
+outputs/runs/detect/exp/layors/layor0.jpg
+Interface_Dependencies/__pycache__/ourDetect.cpython-311.pyc
+Interface_Dependencies/__pycache__/smooth_grad.cpython-311.pyc
