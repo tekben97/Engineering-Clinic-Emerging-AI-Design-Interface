@@ -9,6 +9,7 @@ sys.path.append('./')  # to run '$ python *.py' files in subdirectories
 import numpy as np
 
 from ourDetect import detect, generate_feature_maps
+# from detect import detect
 import torch
 
 from utils.general import strip_optimizer
@@ -26,14 +27,14 @@ def correct_video(video):
     os.system("ffmpeg -i {file_str} -y -vcodec libx264 -acodec aac {file_str}.mp4".format(file_str = video))
     return video+".mp4"
 
-def run_stream(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, is_stream):
+def run_stream(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, outputNum, is_stream):
     if is_stream:
-        return run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, is_stream)
+        return run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, outputNum, is_stream)
     else:
         pass
     
 
-def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, is_stream):
+def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, outputNum, is_stream):
     """
     Takes an image (from upload or webcam), and outputs the yolo7 boxed output and the convolution layers
 
@@ -87,15 +88,15 @@ def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_
     #check_requirements(exclude=('pycocotools', 'thop'))
     if opt.update:  # update all models (to fix SourceChangeWarning)
         for opt.weights in ['yolov7.pt']:
-            save_dir, smooth_dir = detect(opt, is_stream=is_stream)
+            save_dir, smooth_dir = detect(opt, outputNum=outputNum, is_stream=is_stream)
             strip_optimizer(opt.weights)
     else:
-        save_dir, smooth_dir = detect(opt, is_stream=is_stream)
+        save_dir, smooth_dir = detect(opt, outputNum=outputNum, is_stream=is_stream)
     if is_stream:
         return save_dir
     return [save_dir, new_dir, smooth_dir]
 
-def run_video(video, src, inf_size, obj_conf_thr, iou_thr, agnostic_nms, is_stream):
+def run_video(video, src, inf_size, obj_conf_thr, iou_thr, agnostic_nms, is_stream, outputNum=1):
     """
     Takes a video (from upload or webcam), and outputs the yolo7 boxed output
 
@@ -148,10 +149,10 @@ def run_video(video, src, inf_size, obj_conf_thr, iou_thr, agnostic_nms, is_stre
     with torch.no_grad():
         if opt.update:  # update all models (to fix SourceChangeWarning)
             for opt.weights in ['yolov7.pt']:
-                save_dir = detect(opt, is_stream=True)
+                save_dir = detect(opt, is_stream=True, outputNum=outputNum)
                 strip_optimizer(opt.weights)
         else:
-            save_dir = detect(opt, is_stream=True)
+            save_dir = detect(opt, is_stream=True, outputNum=outputNum)
     return save_dir
 
 
@@ -170,6 +171,8 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
         conv_layor = gr.Slider(label="Convolution Layer",info="Choose a whole number from 1 to 17 to see the corresponding convolutional layer",
                                minimum=1,maximum=17,value=1,interactive=True,step=1,show_label=True)
         video_stream = gr.Checkbox(label="Stream from webcam?",info="Check this box if you would like to stream from your webcam",value=False,show_label=True,interactive=True,visible=False)
+        output_map = gr.Slider(label="Map Output Number",info="Choose a whole number from 1 to 3 to see the corresponding attribution map",
+                               minimum=1,maximum=3,value=1,interactive=True,step=1,show_label=True)
     with gr.Row(visible=False) as vid_tot_row:
         with gr.Row(visible=False) as vid_web_row:
             vid_web_input = gr.Video(label="Input Video",source="webcam",show_share_button=True,interactive=True)
@@ -237,13 +240,14 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
                         im_web_start: gr.Row.update(visible=False),
                         im_com_start: gr.Row.update(visible=True),
                         conv_layor: gr.Slider(visible=True),
-                        video_stream: gr.Checkbox(visible=False),
+                        video_stream: gr.Checkbox(visible=False, value=False),
                         vid_streaming: gr.Image(visible=False, streaming=False),
                         vid_web_input: gr.Video(visible=True),
                         im_out_row: gr.Row.update(visible=True),
                         im_conv_output: gr.Image(visible=True),
                         im_smooth_output: gr.Image(visible=True),
-                        vid_output: gr.Video(visible=False)
+                        vid_output: gr.Video(visible=False),
+                        output_map: gr.Slider(visible=True)
                 }
             else:
                 return {
@@ -260,13 +264,14 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
                         im_web_start: gr.Row.update(visible=True),
                         im_com_start: gr.Row.update(visible=False),
                         conv_layor: gr.Slider(visible=True),
-                        video_stream: gr.Checkbox(visible=False),
+                        video_stream: gr.Checkbox(visible=False, value=False),
                         vid_streaming: gr.Image(visible=False, streaming=False),
                         vid_web_input: gr.Video(visible=True),
                         im_out_row: gr.Row.update(visible=True),
                         im_conv_output: gr.Image(visible=True),
                         im_smooth_output: gr.Image(visible=True),
-                        vid_output: gr.Video(visible=False)
+                        vid_output: gr.Video(visible=False),
+                        output_map: gr.Slider(visible=True)
                 }
         else:
             if source == "Computer":
@@ -284,13 +289,14 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
                         im_web_start: gr.Row.update(visible=False),
                         im_com_start: gr.Row.update(visible=False),
                         conv_layor: gr.Slider(visible=False),
-                        video_stream: gr.Checkbox(visible=False),
+                        video_stream: gr.Checkbox(visible=False, value=False),
                         vid_streaming: gr.Image(visible=False, streaming=False),
                         vid_web_input: gr.Video(visible=True),
                         im_out_row: gr.Row.update(visible=False),
                         im_conv_output: gr.Image(visible=True),
                         im_smooth_output: gr.Image(visible=True),
-                        vid_output: gr.Video(visible=True)
+                        vid_output: gr.Video(visible=True),
+                        output_map: gr.Slider(visible=False)
                 }
             else:
                 if is_stream:
@@ -314,7 +320,8 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
                             im_out_row: gr.Row.update(visible=True),
                             im_conv_output: gr.Image(visible=False),
                             im_smooth_output: gr.Image(visible=False),
-                            vid_output: gr.Video(visible=False)
+                            vid_output: gr.Video(visible=False),
+                            output_map: gr.Slider(visible=False)
                     }
                 else:
                     return {
@@ -337,7 +344,8 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
                             im_out_row: gr.Row.update(visible=False),
                             im_conv_output: gr.Image(visible=True),
                             im_smooth_output: gr.Image(visible=True),
-                            vid_output: gr.Video(visible=True)
+                            vid_output: gr.Video(visible=True),
+                            output_map: gr.Slider(visible=False)
                     }
                     
     def change_conv_layor(layor):
@@ -352,18 +360,22 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
         """
         return "outputs\\runs\\detect\\exp\\layors\\layor" + str(int(int(layor) - 1)) + '.jpg'
     
-    file_type.input(change_file_type, show_progress=True, inputs=[file_type, source_type, video_stream], outputs=[im_tot_row, vid_tot_row, im_tot_start, vid_tot_start, vid_com_row, vid_web_row, im_com_row, im_web_row, vid_web_start, vid_com_start, im_web_start, im_com_start, conv_layor, video_stream, vid_streaming, vid_web_input, im_out_row, im_conv_output, im_smooth_output, vid_output])
-    source_type.input(change_file_type, show_progress=True, inputs=[file_type, source_type, video_stream], outputs=[im_tot_row, vid_tot_row, im_tot_start, vid_tot_start, vid_com_row, vid_web_row, im_com_row, im_web_row, vid_web_start, vid_com_start, im_web_start, im_com_start, conv_layor, video_stream, vid_streaming, vid_web_input, im_out_row, im_conv_output, im_smooth_output, vid_output])
-    video_stream.input(change_file_type, show_progress=True, inputs=[file_type, source_type, video_stream], outputs=[im_tot_row, vid_tot_row, im_tot_start, vid_tot_start, vid_com_row, vid_web_row, im_com_row, im_web_row, vid_web_start, vid_com_start, im_web_start, im_com_start, conv_layor, video_stream, vid_streaming, vid_web_input, im_out_row, im_conv_output, im_smooth_output, vid_output])
-    im_com_but.click(run_image, inputs=[im_com_input, source_type, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, video_stream], outputs=[im_output, im_conv_output, im_smooth_output])
+    def change_output_num(number):
+        return "outputs\\runs\\detect\\exp\\smoothGrad" + str(int(int(number) -1)) + '.jpg'
+    
+    file_type.input(change_file_type, show_progress=True, inputs=[file_type, source_type, video_stream], outputs=[im_tot_row, vid_tot_row, im_tot_start, vid_tot_start, vid_com_row, vid_web_row, im_com_row, im_web_row, vid_web_start, vid_com_start, im_web_start, im_com_start, conv_layor, video_stream, vid_streaming, vid_web_input, im_out_row, im_conv_output, im_smooth_output, vid_output, output_map])
+    source_type.input(change_file_type, show_progress=True, inputs=[file_type, source_type, video_stream], outputs=[im_tot_row, vid_tot_row, im_tot_start, vid_tot_start, vid_com_row, vid_web_row, im_com_row, im_web_row, vid_web_start, vid_com_start, im_web_start, im_com_start, conv_layor, video_stream, vid_streaming, vid_web_input, im_out_row, im_conv_output, im_smooth_output, vid_output, output_map])
+    video_stream.input(change_file_type, show_progress=True, inputs=[file_type, source_type, video_stream], outputs=[im_tot_row, vid_tot_row, im_tot_start, vid_tot_start, vid_com_row, vid_web_row, im_com_row, im_web_row, vid_web_start, vid_com_start, im_web_start, im_com_start, conv_layor, video_stream, vid_streaming, vid_web_input, im_out_row, im_conv_output, im_smooth_output, vid_output, output_map])
+    im_com_but.click(run_image, inputs=[im_com_input, source_type, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, output_map, video_stream], outputs=[im_output, im_conv_output, im_smooth_output])
     vid_com_but.click(run_video, inputs=[vid_com_input, source_type, inf_size, obj_conf_thr, iou_thr, agnostic_nms, video_stream], outputs=[vid_output])
-    im_web_but.click(run_image, inputs=[im_web_input, source_type, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, video_stream], outputs=[im_output, im_conv_output, im_smooth_output])
+    im_web_but.click(run_image, inputs=[im_web_input, source_type, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, output_map, video_stream], outputs=[im_output, im_conv_output, im_smooth_output])
     vid_web_but.click(run_video, inputs=[vid_web_input, source_type, inf_size, obj_conf_thr, iou_thr, agnostic_nms, video_stream], outputs=[vid_output])
     vid_com_input.upload(correct_video, inputs=[vid_com_input], outputs=[vid_com_input])
     vid_web_input.upload(correct_video, inputs=[vid_web_input], outputs=[vid_web_input])
     conv_layor.input(change_conv_layor, conv_layor, im_conv_output)
-    vid_streaming.stream(run_stream, inputs=[vid_streaming, source_type, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, video_stream], outputs=[im_output])
-    demo.load(change_file_type, show_progress=True, inputs=[file_type, source_type, video_stream], outputs=[im_tot_row, vid_tot_row, im_tot_start, vid_tot_start, vid_com_row, vid_web_row, im_com_row, im_web_row, vid_web_start, vid_com_start, im_web_start, im_com_start, conv_layor, video_stream, vid_streaming, vid_web_input, im_out_row, im_conv_output, im_smooth_output, vid_output] )
+    vid_streaming.stream(run_stream, inputs=[vid_streaming, source_type, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, output_map, video_stream], outputs=[im_output])
+    output_map.input(change_output_num, output_map, im_smooth_output)
+    demo.load(change_file_type, show_progress=True, inputs=[file_type, source_type, video_stream], outputs=[im_tot_row, vid_tot_row, im_tot_start, vid_tot_start, vid_com_row, vid_web_row, im_com_row, im_web_row, vid_web_start, vid_com_start, im_web_start, im_com_start, conv_layor, video_stream, vid_streaming, vid_web_input, im_out_row, im_conv_output, im_smooth_output, vid_output, output_map] )
 
 if __name__== "__main__" :
     if True:

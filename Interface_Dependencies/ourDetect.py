@@ -31,6 +31,8 @@ transform = transforms.Compose([
     transforms.Normalize(mean=0., std=1.)
 ])
 
+thisPath = ""
+
 def generate_feature_maps(img, con_layor):
     this_img = np.array(img)
     image = Image.fromarray(this_img, 'RGB')
@@ -59,8 +61,10 @@ def generate_feature_maps(img, con_layor):
                         counter+=1
                         model_weights.append(child.weight)
                         conv_layers.append(child)
-
-    device = torch.device('cpu')
+    if torch.cuda.is_available():
+        device = torch.device('cuda')
+    else:
+        device = torch.device('cpu')
     model = model.to(device)
 
     image = transform(image)
@@ -95,7 +99,7 @@ def generate_feature_maps(img, con_layor):
     print("Convolutional Layors Generated")
     return this_dir
 
-def detect(opt, is_stream, save_img=False):
+def detect(opt, is_stream, outputNum, save_img=False):
     source, weights, view_img, save_txt, imgsz, trace = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size, not opt.no_trace
     save_img = not opt.nosave and not source.endswith('.txt')  # save inference images
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
@@ -109,6 +113,7 @@ def detect(opt, is_stream, save_img=False):
     set_logging()
     device = select_device(opt.device)
     half = device.type != 'cpu'  # half precision only supported on CUDA
+    half = False
 
     # Load model
     model = attempt_load(weights, map_location=device)  # load FP32 model
@@ -196,6 +201,16 @@ def detect(opt, is_stream, save_img=False):
                 for c in det[:, -1].unique():
                     n = (det[:, -1] == c).sum()  # detections per class
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
+                if dataset.mode == 'image':
+                    model.train()
+                    # smooth_gradient = returnSmoothGrad(img=img_,model=model, augment=opt.augment)
+                    smooth_gradient1 = generate_vanilla_grad(model=model, input_tensor=img, outputNum=1, targets=None, norm=False, device=device)
+                    torchvision.utils.save_image(smooth_gradient1,fp="outputs\\runs\\detect\\exp\\smoothGrad0.jpg")
+                    smooth_gradient2 = generate_vanilla_grad(model=model, input_tensor=img, outputNum=2, targets=None, norm=False, device=device)
+                    torchvision.utils.save_image(smooth_gradient2,fp="outputs\\runs\\detect\\exp\\smoothGrad1.jpg")
+                    smooth_gradient3 = generate_vanilla_grad(model=model, input_tensor=img, outputNum=3, targets=None, norm=False, device=device)
+                    torchvision.utils.save_image(smooth_gradient3,fp="outputs\\runs\\detect\\exp\\smoothGrad2.jpg")
+                    model.eval()
                 
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
@@ -225,8 +240,8 @@ def detect(opt, is_stream, save_img=False):
                     print(f" The image with the result is saved in: {save_path}")
                     if not is_stream:
                         model.train()
-                        smooth_gradient = generate_vanilla_grad(model=model, input_tensor=img, targets=None, norm=False, device=device)
-                        torchvision.utils.save_image(smooth_gradient,fp="outputs\\runs\\detect\\exp\\smoothGrad.jpg")
+                        #smooth_gradient = generate_vanilla_grad(model=model, input_tensor=img, targets=None, norm=False, device=device)
+                        #torchvision.utils.save_image(smooth_gradient,fp="outputs\\runs\\detect\\exp\\smoothGrad.jpg")
                         model.eval()
                 else:  # 'video' or 'stream'
                     if vid_path != save_path:  # new video
@@ -249,6 +264,6 @@ def detect(opt, is_stream, save_img=False):
         print(f"Results saved to {save_dir}{s}")
     if dataset.mode == 'image':
         print(f'Done. ({time.time() - t0:.3f}s)')
-        return [str(save_path), "outputs\\runs\\detect\\exp\\smoothGrad.jpg"]
+        return [str(save_path), "outputs\\runs\\detect\\exp\\smoothGrad" + str(int(int(outputNum) -1)) + ".jpg"]
     else:
         return str(save_path)

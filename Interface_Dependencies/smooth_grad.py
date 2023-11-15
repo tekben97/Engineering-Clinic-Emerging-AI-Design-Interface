@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-def generate_vanilla_grad(model, input_tensor, targets=None, norm=False, device='cpu'):
+def generate_vanilla_grad(model, input_tensor, outputNum, targets=None, norm=False, device='cpu'):
     """
     Generates an attribution map using vanilla gradient method.
 
@@ -25,12 +25,14 @@ def generate_vanilla_grad(model, input_tensor, targets=None, norm=False, device=
     # Zero gradients
     model.zero_grad()
     
-    # train_out[1] = torch.Size([4, 3, 80, 80, 7]) HxWx(#anchorxC) cls (class probabilities)
-    # train_out[0] = torch.Size([4, 3, 160, 160, 7]) HxWx(#anchorx4) reg (location and scaling)
-    # train_out[2] = torch.Size([4, 3, 40, 40, 7]) HxWx(#anchorx1) obj (objectness score or confidence)
+    import torch
+
+    # train_out[1] = torch.Size([4, 3, 80, 80, 7]) #anchorxC) cls (class probabilities)
+    # train_out[0] = torch.Size([4, 3, 160, 160, 7]) #anchorx4) reg (location and scaling)
+    # train_out[2] = torch.Size([4, 3, 40, 40, 7]) #anchorx1) obj (objectness score or confidence)
     
-    gradients = torch.autograd.grad(train_out[1].requires_grad_(True), input_tensor, 
-                                    grad_outputs=torch.ones_like(train_out[1]).requires_grad_(True), 
+    gradients = torch.autograd.grad(train_out[outputNum-1].requires_grad_(True), input_tensor, 
+                                    grad_outputs=torch.ones_like(train_out[outputNum-1]).requires_grad_(True), 
                                     retain_graph=True, create_graph=True)
     
     # Convert gradients to numpy array
