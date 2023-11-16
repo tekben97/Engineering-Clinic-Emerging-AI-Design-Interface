@@ -1,4 +1,15 @@
 # Usage: pip install -r requirements.txt
+# If issues with versions try: pip --no-cache-dir install -r requirements.txt
+
+# Python version
+# python==3.11.5
+
+#PyTorch / Cuda
+--extra-index-url https://download.pytorch.org/whl/cu118 # for cuda
+# --extra-index-url https://download.pytorch.org/whl/torch_stable.html # for cpu
+torch>=1.7.0,!=1.12.0
+torchvision>=0.8.1,!=0.13.0
+torchaudio
 
 # Base ----------------------------------------
 matplotlib>=3.2.2
@@ -8,16 +19,12 @@ Pillow>=7.1.2
 PyYAML>=5.3.1
 requests>=2.23.0
 scipy>=1.4.1
-torch>=1.7.0,!=1.12.0
-torchvision>=0.8.1,!=0.13.0
 tqdm>=4.41.0
 protobuf<4.21.3
 gradio==3.50.1
-ffmpeg
 
 # Logging -------------------------------------
 tensorboard>=2.4.1
-# wandb
 
 # Plotting ------------------------------------
 pandas>=1.1.4
@@ -36,6 +43,3 @@ seaborn>=0.11.0
 ipython  # interactive notebook
 psutil  # system utilization
 thop  # FLOPs computation
-# albumentations>=1.0.3
-# pycocotools>=2.0  # COCO mAP
-# roboflow
