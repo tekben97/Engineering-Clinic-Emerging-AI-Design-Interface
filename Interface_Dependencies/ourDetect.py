@@ -183,6 +183,8 @@ def detect(opt, is_stream, outputNum, save_img=False):
             pred = apply_classifier(pred, modelc, img, im0s)
 
         # Process detections
+        labels = {}
+        allDetcs = []
         for i, det in enumerate(pred):  # detections per image
             if webcam:  # batch_size >= 1
                 p, s, im0, frame = path[i], '%g: ' % i, im0s[i].copy(), dataset.count
@@ -222,6 +224,8 @@ def detect(opt, is_stream, outputNum, save_img=False):
 
                     if save_img or view_img:  # Add bbox to image
                         label = f'{names[int(cls)]} {conf:.2f}'
+                        allDetcs.append(label)
+                    if (names[int(cls)] not in labels or labels[names[int(cls)]] < conf.item()) and conf is not None:
                         plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
                     
 
@@ -264,6 +268,7 @@ def detect(opt, is_stream, outputNum, save_img=False):
         print(f"Results saved to {save_dir}{s}")
     if dataset.mode == 'image':
         print(f'Done. ({time.time() - t0:.3f}s)')
-        return [str(save_path), "outputs\\runs\\detect\\exp\\smoothGrad" + str(int(int(outputNum) -1)) + ".jpg"]
+        print(allDetcs)
+        return [str(save_path), "outputs\\runs\\detect\\exp\\smoothGrad" + str(int(int(outputNum) -1)) + ".jpg", allDetcs]
     else:
         return str(save_path)
