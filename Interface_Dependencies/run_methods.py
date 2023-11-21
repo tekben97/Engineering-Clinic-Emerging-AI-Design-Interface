@@ -26,14 +26,14 @@ def correct_video(video):
     os.system("ffmpeg -i {file_str} -y -vcodec libx264 -acodec aac {file_str}.mp4".format(file_str = video))
     return video+".mp4"
 
-def run_stream(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, outputNum, is_stream):
+def run_stream(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, outputNum, is_stream, norm):
     if is_stream:
-        return run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, outputNum, is_stream)
+        return run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, outputNum, is_stream, norm)
     else:
         pass
     
 
-def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, outputNum, is_stream):
+def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, outputNum, is_stream, norm):
     """
     Takes an image (from upload or webcam), and outputs the yolo7 boxed output and the convolution layers
 
@@ -87,10 +87,10 @@ def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_
     #check_requirements(exclude=('pycocotools', 'thop'))
     if opt.update:  # update all models (to fix SourceChangeWarning)
         for opt.weights in ['yolov7.pt']:
-            save_dir, smooth_dir, labels = detect(opt, outputNum=outputNum, is_stream=is_stream)
+            save_dir, smooth_dir, labels = detect(opt, outputNum=outputNum, is_stream=is_stream, norm=norm)
             strip_optimizer(opt.weights)
     else:
-        save_dir, smooth_dir, labels = detect(opt, outputNum=outputNum, is_stream=is_stream)
+        save_dir, smooth_dir, labels = detect(opt, outputNum=outputNum, is_stream=is_stream, norm=norm)
     if is_stream:
         return save_dir
     return [save_dir, new_dir, smooth_dir, labels]  # added info

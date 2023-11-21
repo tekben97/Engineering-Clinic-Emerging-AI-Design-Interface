@@ -19,11 +19,12 @@ sys.path.append('yolov7-main')
 sys.path.append('./')  # to run '$ python *.py' files in subdirectories
 from models.experimental import attempt_load
 from utils.datasets import LoadStreams, LoadImages
-from utils.general import check_img_size, check_requirements, check_imshow, non_max_suppression, apply_classifier, \
-    scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path
+from utils.general import check_img_size, check_imshow, non_max_suppression, apply_classifier, \
+    scale_coords, xyxy2xywh, set_logging
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
-from smooth_grad import generate_vanilla_grad
+# from smooth_grad import generate_vanilla_grad
+from plaus_functs import generate_vanilla_grad
 
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
@@ -99,7 +100,7 @@ def generate_feature_maps(img, con_layor):
     print("Convolutional Layors Generated")
     return this_dir
 
-def detect(opt, is_stream, outputNum, save_img=False):
+def detect(opt, is_stream, outputNum=1, norm=False, save_img=False):
     source, weights, view_img, save_txt, imgsz, trace = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size, not opt.no_trace
     save_img = not opt.nosave and not source.endswith('.txt')  # save inference images
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
@@ -205,12 +206,11 @@ def detect(opt, is_stream, outputNum, save_img=False):
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
                 if dataset.mode == 'image':
                     model.train()
-                    # smooth_gradient = returnSmoothGrad(img=img_,model=model, augment=opt.augment)
-                    smooth_gradient1 = generate_vanilla_grad(model=model, input_tensor=img, outputNum=1, targets=None, norm=False, device=device)
+                    smooth_gradient1 = generate_vanilla_grad(model=model, input_tensor=img, out_num=1, targets=None, norm=norm, device=device)
                     torchvision.utils.save_image(smooth_gradient1,fp="outputs\\runs\\detect\\exp\\smoothGrad0.jpg")
-                    smooth_gradient2 = generate_vanilla_grad(model=model, input_tensor=img, outputNum=2, targets=None, norm=False, device=device)
+                    smooth_gradient2 = generate_vanilla_grad(model=model, input_tensor=img, out_num=2, targets=None, norm=norm, device=device)
                     torchvision.utils.save_image(smooth_gradient2,fp="outputs\\runs\\detect\\exp\\smoothGrad1.jpg")
-                    smooth_gradient3 = generate_vanilla_grad(model=model, input_tensor=img, outputNum=3, targets=None, norm=False, device=device)
+                    smooth_gradient3 = generate_vanilla_grad(model=model, input_tensor=img, out_num=3, targets=None, norm=norm, device=device)
                     torchvision.utils.save_image(smooth_gradient3,fp="outputs\\runs\\detect\\exp\\smoothGrad2.jpg")
                     model.eval()
                 
@@ -242,11 +242,6 @@ def detect(opt, is_stream, outputNum, save_img=False):
                 if dataset.mode == 'image':
                     cv2.imwrite(save_path, im0)
                     print(f" The image with the result is saved in: {save_path}")
-                    if not is_stream:
-                        model.train()
-                        #smooth_gradient = generate_vanilla_grad(model=model, input_tensor=img, targets=None, norm=False, device=device)
-                        #torchvision.utils.save_image(smooth_gradient,fp="outputs\\runs\\detect\\exp\\smoothGrad.jpg")
-                        model.eval()
                 else:  # 'video' or 'stream'
                     if vid_path != save_path:  # new video
                         vid_path = save_path
