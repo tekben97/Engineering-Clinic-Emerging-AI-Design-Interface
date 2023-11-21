@@ -54,7 +54,8 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
             im_output = gr.Image(type='filepath',label="Output Image",show_download_button=True,show_share_button=True,interactive=False, visible=True)
             im_conv_output = gr.Image(type='filepath',label="Output Convolution",show_download_button=True,show_share_button=True,interactive=False)
             im_smooth_output = gr.Image(type='filepath',label="Output Smooth Gradient",show_download_button=True,show_share_button=True,interactive=False)
-            labels = gr.Textbox(label='Top Predictions', value = "")   #ME
+            labels = gr.Textbox(label='Top Predictions:', value = "")   #ME
+            formatted_time = gr.Textbox(label = 'Time to Run in Seconds:', value = "")
     with gr.Row(visible=False) as vid_tot_start:
         with gr.Row(visible=False) as vid_web_start:
             vid_web_but = gr.Button(label="Start")
@@ -67,11 +68,11 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
     with gr.Row() as im_tot_start:
         with gr.Row(visible=False) as im_web_start:
             im_web_but = gr.Button(label="Start")
-            gr.ClearButton(components=[im_web_input, im_output, im_conv_output, im_smooth_output, labels],  #Added info 
+            gr.ClearButton(components=[im_web_input, im_output, im_conv_output, im_smooth_output, labels, formatted_time],  #Added info 
                     interactive=True, visible=True)
         with gr.Row() as im_com_start:
             im_com_but = gr.Button(label="Start")
-            gr.ClearButton(components=[im_com_input, im_output, im_conv_output, im_smooth_output, labels],  #Added info
+            gr.ClearButton(components=[im_com_input, im_output, im_conv_output, im_smooth_output, labels, formatted_time],  #Added info
                     interactive=True, visible=True)
     with gr.Row() as settings:
         inf_size = gr.Number(label='Inference Size (pixels)',value=640,precision=0)
@@ -233,9 +234,9 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
     file_type.input(change_file_type, show_progress=True, inputs=[file_type, source_type, video_stream], outputs=[im_tot_row, vid_tot_row, im_tot_start, vid_tot_start, vid_com_row, vid_web_row, im_com_row, im_web_row, vid_web_start, vid_com_start, im_web_start, im_com_start, conv_layor, video_stream, vid_streaming, vid_web_input, im_out_row, im_conv_output, im_smooth_output, vid_output, output_map])
     source_type.input(change_file_type, show_progress=True, inputs=[file_type, source_type, video_stream], outputs=[im_tot_row, vid_tot_row, im_tot_start, vid_tot_start, vid_com_row, vid_web_row, im_com_row, im_web_row, vid_web_start, vid_com_start, im_web_start, im_com_start, conv_layor, video_stream, vid_streaming, vid_web_input, im_out_row, im_conv_output, im_smooth_output, vid_output, output_map])
     video_stream.input(change_file_type, show_progress=True, inputs=[file_type, source_type, video_stream], outputs=[im_tot_row, vid_tot_row, im_tot_start, vid_tot_start, vid_com_row, vid_web_row, im_com_row, im_web_row, vid_web_start, vid_com_start, im_web_start, im_com_start, conv_layor, video_stream, vid_streaming, vid_web_input, im_out_row, im_conv_output, im_smooth_output, vid_output, output_map])
-    im_com_but.click(run_image, inputs=[im_com_input, source_type, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, output_map, video_stream, norm], outputs=[im_output, im_conv_output, im_smooth_output, labels])
+    im_com_but.click(run_image, inputs=[im_com_input, source_type, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, output_map, video_stream], outputs=[im_output, im_conv_output, im_smooth_output, labels, formatted_time])
     vid_com_but.click(run_video, inputs=[vid_com_input, source_type, inf_size, obj_conf_thr, iou_thr, agnostic_nms, video_stream], outputs=[vid_output])
-    im_web_but.click(run_image, inputs=[im_web_input, source_type, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, output_map, video_stream, norm], outputs=[im_output, im_conv_output, im_smooth_output, labels])
+    im_web_but.click(run_image, inputs=[im_web_input, source_type, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, output_map, video_stream], outputs=[im_output, im_conv_output, im_smooth_output, labels, formatted_time])
     vid_web_but.click(run_video, inputs=[vid_web_input, source_type, inf_size, obj_conf_thr, iou_thr, agnostic_nms, video_stream], outputs=[vid_output])
     vid_com_input.upload(correct_video, inputs=[vid_com_input], outputs=[vid_com_input])
     vid_web_input.upload(correct_video, inputs=[vid_web_input], outputs=[vid_web_input])
