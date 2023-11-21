@@ -74,12 +74,9 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
         # Agnostic NMS boolean
         agnostic_nms = gr.Checkbox(label='Agnostic NMS',value=True)
         # Normailze gradient boolean
-        norm = gr.Checkbox(label='Normalize Gradient',value=False)
+        norm = gr.Checkbox(label='Normalize Gradient',value=False,visible=True)
     
-    change_comp_list = [conv_layor,video_stream,output_map,input_im,output_box_im,output_conv_im,output_grad_im,input_vid,output_box_vid,norm,labels]
-    start_input_comps = []
-    
-    def change_file_type(file, source, is_stream, start_input_comps=start_input_comps):
+    def change_file_type(file, source, is_stream):
         """
         Changes the visible components of the gradio interface
 
@@ -103,7 +100,7 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
                     output_grad_im: gr.Image(visible=True),
                     input_vid: gr.Video(visible=False),
                     output_box_vid: gr.Video(visible=False),
-                    norm: gr.Checkbox(visible=False),
+                    norm: gr.Checkbox(visible=True),
                     labels: gr.Textbox(visible=True)
                 }
             elif source == "Webcam":
@@ -118,7 +115,7 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
                     output_grad_im: gr.Image(visible=True),
                     input_vid: gr.Video(visible=False),
                     output_box_vid: gr.Video(visible=False),
-                    norm: gr.Checkbox(visible=False),
+                    norm: gr.Checkbox(visible=True),
                     labels: gr.Textbox(visible=True)
                 }
         elif file == "Video":
@@ -184,14 +181,32 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
     def change_output_num(number):
         return "outputs\\runs\\detect\\exp\\smoothGrad" + str(int(int(number) -1)) + '.jpg'
     
+    # List of gradio components that change during method "change_file_type"
+    change_comp_list = [conv_layor, video_stream, output_map, 
+                        input_im, output_box_im, output_conv_im, output_grad_im,
+                        input_vid, output_box_vid, norm, labels]
+    # List of gradio components that are input into the run_all method (when start button is clicked)
+    run_inputs = [file_type, input_im, input_vid, source_type, 
+                  inf_size, obj_conf_thr, iou_thr, conv_layor, 
+                  agnostic_nms, output_map, video_stream, norm]
+    # List of gradio components that are output from the run_all method (when start button is clicked)
+    run_outputs = [output_box_im, output_conv_im, output_grad_im, labels, output_box_vid]
+    
+    # When these settings are changed, the change_file_type method is called
     file_type.input(change_file_type, show_progress=True, inputs=[file_type, source_type, video_stream], outputs=change_comp_list)
     source_type.input(change_file_type, show_progress=True, inputs=[file_type, source_type, video_stream], outputs=change_comp_list)
     video_stream.input(change_file_type, show_progress=True, inputs=[file_type, source_type, video_stream], outputs=change_comp_list)
-    start_but.click(run_all, inputs=[file_type, input_im, input_vid, source_type, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, output_map, video_stream, norm], outputs=[output_box_im, output_conv_im, output_grad_im, labels, output_box_vid])
+    # When start button is clicked, the run_all method is called
+    start_but.click(run_all, inputs=run_inputs, outputs=run_outputs)
+    # When video is uploaded, the correct_video method is called
     input_vid.upload(correct_video, inputs=[input_vid], outputs=[input_vid])
+    # When the convolutional layer setting is changed, the change_conv_layor method is called
     conv_layor.input(change_conv_layor, conv_layor, output_conv_im)
-    input_im.stream(run_all, inputs=[file_type, input_im, input_vid, source_type, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, output_map, video_stream, norm], outputs=[output_box_im])
+    # When the stream setting is true, run the stream
+    input_im.stream(run_all, inputs=run_inputs, outputs=run_outputs)
+    # When the gradient number is changed, the change_output_num method is called
     output_map.input(change_output_num, output_map, output_grad_im)
+    # When the demo is first started, run the change_file_type method to ensure default settings
     demo.load(change_file_type, show_progress=True, inputs=[file_type, source_type, video_stream], outputs=change_comp_list)
 
 if __name__== "__main__" :
