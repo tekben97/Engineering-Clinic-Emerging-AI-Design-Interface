@@ -47,6 +47,8 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
                                   show_download_button=True,show_share_button=True,interactive=False,visible=True)
         # Default label output textbox: Visible
         labels = gr.Textbox(label='Top Predictions', value = "")
+        # Default time output textbox: Visible
+        formatted_time = gr.Textbox(label = 'Time to Run in Seconds:', value = "")
         
         # Default input video: Not visible, Upload from computer
         input_vid =  gr.Video(source="upload",label="Input Video",
@@ -55,13 +57,13 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
         output_box_vid = gr.Video(label="Output Video",show_share_button=True,visible=False)
     
     # List of components for clearing
-    clear_comp_list = [input_im, output_box_im, output_conv_im, output_grad_im, input_vid, output_box_vid]
+    clear_comp_list = [input_im, output_box_im, output_conv_im, output_grad_im, labels, formatted_time, input_vid, output_box_vid]
     
     # For start & clear buttons
     with gr.Row() as buttons:
         start_but = gr.Button(label="Start")
         clear_but = gr.ClearButton(value='Clear All',components=clear_comp_list,
-                   interactive=True, visible=True)
+                   interactive=True,visible=True)
         
     # For model settings
     with gr.Row() as model_settings:
@@ -101,7 +103,8 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
                     input_vid: gr.Video(visible=False),
                     output_box_vid: gr.Video(visible=False),
                     norm: gr.Checkbox(visible=True),
-                    labels: gr.Textbox(visible=True)
+                    labels: gr.Textbox(visible=True),
+                    formatted_time: gr.Textbox(visible=True)
                 }
             elif source == "Webcam":
                 return {
@@ -116,7 +119,8 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
                     input_vid: gr.Video(visible=False),
                     output_box_vid: gr.Video(visible=False),
                     norm: gr.Checkbox(visible=True),
-                    labels: gr.Textbox(visible=True)
+                    labels: gr.Textbox(visible=True),
+                    formatted_time: gr.Textbox(visible=True)
                 }
         elif file == "Video":
             if source == "Computer":
@@ -132,7 +136,8 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
                               show_share_button=True,interactive=True,visible=True),
                     output_box_vid: gr.Video(label="Output Video",show_share_button=True,visible=True),
                     norm: gr.Checkbox(visible=False),
-                    labels: gr.Textbox(visible=False)
+                    labels: gr.Textbox(visible=False),
+                    formatted_time: gr.Textbox(visible=False)
                 }
             elif source == "Webcam":
                 if is_stream:
@@ -148,7 +153,8 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
                         input_vid: gr.Video(visible=False),
                         output_box_vid: gr.Video(visible=False),
                         norm: gr.Checkbox(visible=False),
-                        labels: gr.Textbox(visible=False)
+                        labels: gr.Textbox(visible=False),
+                        formatted_time: gr.Textbox(visible=False)
                     }
                 elif not is_stream:
                     return {
@@ -163,7 +169,8 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
                                             show_share_button=True,interactive=True,visible=True),
                         output_box_vid: gr.Video(label="Output Video",show_share_button=True,visible=True),
                         norm: gr.Checkbox(visible=False),
-                        labels: gr.Textbox(visible=False)
+                        labels: gr.Textbox(visible=False),
+                        formatted_time: gr.Textbox(visible=False)
                     }
                 
     def change_conv_layor(layor):
@@ -184,13 +191,13 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
     # List of gradio components that change during method "change_file_type"
     change_comp_list = [conv_layor, video_stream, output_map, 
                         input_im, output_box_im, output_conv_im, output_grad_im,
-                        input_vid, output_box_vid, norm, labels]
+                        input_vid, output_box_vid, norm, labels, formatted_time]
     # List of gradio components that are input into the run_all method (when start button is clicked)
     run_inputs = [file_type, input_im, input_vid, source_type, 
                   inf_size, obj_conf_thr, iou_thr, conv_layor, 
                   agnostic_nms, output_map, video_stream, norm]
     # List of gradio components that are output from the run_all method (when start button is clicked)
-    run_outputs = [output_box_im, output_conv_im, output_grad_im, labels, output_box_vid]
+    run_outputs = [output_box_im, output_conv_im, output_grad_im, labels, formatted_time, output_box_vid]
     
     # When these settings are changed, the change_file_type method is called
     file_type.input(change_file_type, show_progress=True, inputs=[file_type, source_type, video_stream], outputs=change_comp_list)

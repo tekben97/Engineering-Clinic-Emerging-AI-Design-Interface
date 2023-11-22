@@ -153,4 +153,4 @@ def run_video(video, src, inf_size, obj_conf_thr, iou_thr, agnostic_nms, is_stre
                 strip_optimizer(opt.weights)
         else:
             save_dir = detect(opt, outputNum=outputNum, is_stream=is_stream, norm=norm)
-    return [None, None, None, None, save_dir]
+    return [None, None, None, None, None, save_dir]
