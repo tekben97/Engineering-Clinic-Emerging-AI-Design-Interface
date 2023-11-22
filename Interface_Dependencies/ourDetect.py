@@ -34,12 +34,13 @@ transform = transforms.Compose([
 
 thisPath = ""
 
-def generate_feature_maps(img, con_layor):
+def generate_feature_maps(img, con_layer):
     this_img = np.array(img)
     image = Image.fromarray(this_img, 'RGB')
     plt.imshow(image)
 
-    model = models.resnet18(pretrained=True)
+    # model = models.resnet18(weights=torchvision.models.ResNet18_Weights.IMAGENET1K_V1)
+    model = models.resnet18(weights=torchvision.models.ResNet18_Weights.DEFAULT)
 
     # we will save the conv layer weights in this list
     model_weights =[]
@@ -92,12 +93,12 @@ def generate_feature_maps(img, con_layor):
         a = fig.add_subplot(1, 1, 1)  # You should adjust the layout as needed
         imgplot = plt.imshow(fm, cmap='viridis')  # Adjust the colormap if needed
         a.axis("off")
-        filename = f'layor{i}.jpg'
-        plt.savefig("outputs\\runs\\detect\\exp\\layors\\" + filename, bbox_inches='tight')
+        filename = f'layer{i}.jpg'
+        plt.savefig("outputs\\runs\\detect\\exp\\layers\\" + filename, bbox_inches='tight')
         plt.close(fig)  # Close the figure after saving
     
-    this_dir = "outputs\\runs\\detect\\exp\\layors\\layor" + str(int(int(con_layor) - 1)) + '.jpg'
-    print("Convolutional Layors Generated")
+    this_dir = "outputs\\runs\\detect\\exp\\layers\\layer" + str(int(int(con_layer) - 1)) + '.jpg'
+    print("Convolutional layers Generated")
     return this_dir
 
 def detect(opt, is_stream, outputNum=1, norm=False, save_img=False):

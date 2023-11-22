@@ -9,11 +9,11 @@ from run_methods import run_all, correct_video
 
 
 # Gradio Interface Code
-with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
+with gr.Blocks(title="yolov7 Interface",theme=gr.themes.Base()) as demo:
     gr.Markdown(
     """
-    # Image & Video Interface for YOLO7 Model
-    Upload your own image or video and watch YOLO7 try to guess what it is!
+    # Image & Video Interface for yolov7 Model
+    Upload your own image or video and watch yolov7 try to guess what it is!
     """)
     # For for input & output settings
     with gr.Row() as file_settings:
@@ -24,7 +24,7 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
         source_type = gr.Radio(label="Source Type",info="Choose 'Computer' if you are uploading from your computer, Choose 'Webcam' if you would like to use your webcam",
                              choices=['Computer','Webcam'],value='Computer',show_label=True,interactive=True,visible=True)
         # Allows choice of which convolutional layer to show (1-17) [only for images]
-        conv_layor = gr.Slider(label="Convolution Layer",info="Choose a whole number from 1 to 17 to see the corresponding convolutional layer",
+        conv_layer = gr.Slider(label="Convolution Layer",info="Choose a whole number from 1 to 17 to see the corresponding convolutional layer",
                                minimum=1,maximum=17,value=1,interactive=True,step=1,show_label=True)
         # Allows choice if video from webcam is streaming or uploaded [only for webcam videos]
         video_stream = gr.Checkbox(label="Stream from webcam?",info="Check this box if you would like to stream from your webcam",value=False,show_label=True,interactive=True,visible=False)
@@ -85,6 +85,7 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
         Args:
             file (str): Type of the file (image or video)
             source (str): If the file is uploaded or from webcam
+            is_stream (bool): If the video is streaming or uploaded
 
         Returns:
             Dictionary: Each component of the interface that needs to be updated.
@@ -92,7 +93,7 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
         if file == "Image":
             if source == "Computer":
                 return {
-                    conv_layor: gr.Slider(visible=True),
+                    conv_layer: gr.Slider(visible=True),
                     video_stream: gr.Checkbox(visible=False, value=False),
                     output_map: gr.Slider(visible=True),
                     input_im: gr.Image(source="upload",type='filepath',label="Input Image",
@@ -108,7 +109,7 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
                 }
             elif source == "Webcam":
                 return {
-                    conv_layor: gr.Slider(visible=True),
+                    conv_layer: gr.Slider(visible=True),
                     video_stream: gr.Checkbox(visible=False, value=False),
                     output_map: gr.Slider(visible=True),
                     input_im: gr.Image(type='pil',source="webcam",label="Input Image",
@@ -125,7 +126,7 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
         elif file == "Video":
             if source == "Computer":
                 return {
-                    conv_layor: gr.Slider(visible=False),
+                    conv_layer: gr.Slider(visible=False),
                     video_stream: gr.Checkbox(visible=False, value=False),
                     output_map: gr.Slider(visible=False),
                     input_im: gr.Image(visible=False,streaming=False),
@@ -142,7 +143,7 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
             elif source == "Webcam":
                 if is_stream:
                     return {
-                        conv_layor: gr.Slider(visible=False),
+                        conv_layer: gr.Slider(visible=False),
                         video_stream: gr.Checkbox(visible=True),
                         output_map: gr.Slider(visible=False),
                         input_im: gr.Image(type='pil',source="webcam",label="Input Image",
@@ -158,7 +159,7 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
                     }
                 elif not is_stream:
                     return {
-                        conv_layor: gr.Slider(visible=False),
+                        conv_layer: gr.Slider(visible=False),
                         video_stream: gr.Checkbox(visible=True, value=False),
                         output_map: gr.Slider(visible=False),
                         input_im: gr.Image(visible=False,streaming=False),
@@ -173,28 +174,28 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
                         formatted_time: gr.Textbox(visible=False)
                     }
                 
-    def change_conv_layor(layor):
+    def change_conv_layer(layer):
         """
         Changes the shown convolutional output layer based on gradio slider
 
         Args:
-            layor (int): The layor to show
+            layer (int): The layer to show
 
         Returns:
             str: The file path of the output image
         """
-        return "outputs\\runs\\detect\\exp\\layors\\layor" + str(int(int(layor) - 1)) + '.jpg'
+        return "outputs\\runs\\detect\\exp\\layers\\layer" + str(int(int(layer) - 1)) + '.jpg'
     
     def change_output_num(number):
         return "outputs\\runs\\detect\\exp\\smoothGrad" + str(int(int(number) -1)) + '.jpg'
     
     # List of gradio components that change during method "change_file_type"
-    change_comp_list = [conv_layor, video_stream, output_map, 
+    change_comp_list = [conv_layer, video_stream, output_map, 
                         input_im, output_box_im, output_conv_im, output_grad_im,
                         input_vid, output_box_vid, norm, labels, formatted_time]
     # List of gradio components that are input into the run_all method (when start button is clicked)
     run_inputs = [file_type, input_im, input_vid, source_type, 
-                  inf_size, obj_conf_thr, iou_thr, conv_layor, 
+                  inf_size, obj_conf_thr, iou_thr, conv_layer, 
                   agnostic_nms, output_map, video_stream, norm]
     # List of gradio components that are output from the run_all method (when start button is clicked)
     run_outputs = [output_box_im, output_conv_im, output_grad_im, labels, formatted_time, output_box_vid]
@@ -207,8 +208,8 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
     start_but.click(run_all, inputs=run_inputs, outputs=run_outputs)
     # When video is uploaded, the correct_video method is called
     input_vid.upload(correct_video, inputs=[input_vid], outputs=[input_vid])
-    # When the convolutional layer setting is changed, the change_conv_layor method is called
-    conv_layor.input(change_conv_layor, conv_layor, output_conv_im)
+    # When the convolutional layer setting is changed, the change_conv_layer method is called
+    conv_layer.input(change_conv_layer, conv_layer, output_conv_im)
     # When the stream setting is true, run the stream
     input_im.stream(run_all, inputs=run_inputs, outputs=run_outputs)
     # When the gradient number is changed, the change_output_num method is called

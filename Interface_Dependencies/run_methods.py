@@ -26,15 +26,15 @@ def correct_video(video):
     os.system("ffmpeg -i {file_str} -y -vcodec libx264 -acodec aac {file_str}.mp4".format(file_str = video))
     return video+".mp4"
 
-def run_all(source_type, im, vid, src, inf_size=640, obj_conf_thr=0.25, iou_thr=0.45, conv_layor=1, agnostic_nms=False, outputNum=1, is_stream=False, norm=False):
+def run_all(source_type, im, vid, src, inf_size=640, obj_conf_thr=0.25, iou_thr=0.45, conv_layer=1, agnostic_nms=False, outputNum=1, is_stream=False, norm=False):
     if is_stream:
-        return run_image(image=im,src=src,inf_size=inf_size,obj_conf_thr=obj_conf_thr,iou_thr=iou_thr,conv_layor=conv_layor,agnostic_nms=agnostic_nms,outputNum=outputNum,is_stream=is_stream,norm=norm)
+        return run_image(image=im,src=src,inf_size=inf_size,obj_conf_thr=obj_conf_thr,iou_thr=iou_thr,conv_layer=conv_layer,agnostic_nms=agnostic_nms,outputNum=outputNum,is_stream=is_stream,norm=norm)
     elif source_type == "Image":
-        return run_image(image=im,src=src,inf_size=inf_size,obj_conf_thr=obj_conf_thr,iou_thr=iou_thr,conv_layor=conv_layor,agnostic_nms=agnostic_nms,outputNum=outputNum,is_stream=is_stream,norm=norm)
+        return run_image(image=im,src=src,inf_size=inf_size,obj_conf_thr=obj_conf_thr,iou_thr=iou_thr,conv_layer=conv_layer,agnostic_nms=agnostic_nms,outputNum=outputNum,is_stream=is_stream,norm=norm)
     elif source_type == "Video":
         return run_video(video=vid,src=src,inf_size=inf_size,obj_conf_thr=obj_conf_thr,iou_thr=iou_thr,agnostic_nms=agnostic_nms,is_stream=is_stream,outputNum=outputNum)
 
-def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, outputNum, is_stream, norm):
+def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layer, agnostic_nms, outputNum, is_stream, norm):
     """
     Takes an image (from upload or webcam), and outputs the yolo7 boxed output and the convolution layers
 
@@ -44,7 +44,7 @@ def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_
         inf_size (int): The size of the inference
         obj_conf_thr (float): The object confidence threshold
         iou_thr (float): The intersection of union number
-        conv_layor (int): The number of the convolutional layer to show
+        conv_layer (int): The number of the convolutional layer to show
         agnostic_nms (bool): The agnostic nms boolean
 
     Returns:
@@ -58,7 +58,7 @@ def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_
         image = 'Temp.jpg'
     if not is_stream:
         random = Image.open(image)
-        new_dir = generate_feature_maps(random, conv_layor)
+        new_dir = generate_feature_maps(random, conv_layer)
     if agnostic_nms:
         agnostic_nms = 'store_true'
     else:
@@ -88,10 +88,10 @@ def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_
     #check_requirements(exclude=('pycocotools', 'thop'))
     if opt.update:  # update all models (to fix SourceChangeWarning)
         for opt.weights in ['yolov7.pt']:
-            save_dir, smooth_dir, labels, formatted_time = detect(opt, outputNum=outputNum, is_stream=is_stream)
+            save_dir, smooth_dir, labels, formatted_time = detect(opt, outputNum=outputNum, is_stream=is_stream, norm=norm)
             strip_optimizer(opt.weights)
     else:
-        save_dir, smooth_dir, labels, formatted_time = detect(opt, outputNum=outputNum, is_stream=is_stream)
+        save_dir, smooth_dir, labels, formatted_time = detect(opt, outputNum=outputNum, is_stream=is_stream, norm=norm)
     if is_stream:
         return [save_dir, None, None, None, None, None]
     return [save_dir, new_dir, smooth_dir, labels, formatted_time, None]  # added info
@@ -117,8 +117,6 @@ def run_video(video, src, inf_size, obj_conf_thr, iou_thr, agnostic_nms, is_stre
     if src == "Webcam":
         if is_stream:
             video = "0"
-        else:
-            video = correct_video(video)
     if agnostic_nms:
         agnostic_nms = 'store_true'
     else:
