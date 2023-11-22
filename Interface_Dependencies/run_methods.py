@@ -26,12 +26,13 @@ def correct_video(video):
     os.system("ffmpeg -i {file_str} -y -vcodec libx264 -acodec aac {file_str}.mp4".format(file_str = video))
     return video+".mp4"
 
-def run_stream(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, outputNum, is_stream, norm):
+def run_all(source_type, im, vid, src, inf_size=640, obj_conf_thr=0.25, iou_thr=0.45, conv_layor=1, agnostic_nms=False, outputNum=1, is_stream=False, norm=False):
     if is_stream:
-        return run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, outputNum, is_stream, norm)
-    else:
-        pass
-    
+        return run_image(image=im,src=src,inf_size=inf_size,obj_conf_thr=obj_conf_thr,iou_thr=iou_thr,conv_layor=conv_layor,agnostic_nms=agnostic_nms,outputNum=outputNum,is_stream=is_stream,norm=norm)
+    elif source_type == "Image":
+        return run_image(image=im,src=src,inf_size=inf_size,obj_conf_thr=obj_conf_thr,iou_thr=iou_thr,conv_layor=conv_layor,agnostic_nms=agnostic_nms,outputNum=outputNum,is_stream=is_stream,norm=norm)
+    elif source_type == "Video":
+        return run_video(video=vid,src=src,inf_size=inf_size,obj_conf_thr=obj_conf_thr,iou_thr=iou_thr,agnostic_nms=agnostic_nms,is_stream=is_stream,outputNum=outputNum)
 
 def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_nms, outputNum, is_stream, norm):
     """
@@ -92,10 +93,10 @@ def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_
     else:
         save_dir, smooth_dir, labels, formatted_time = detect(opt, outputNum=outputNum, is_stream=is_stream)
     if is_stream:
-        return save_dir
-    return [save_dir, new_dir, smooth_dir, labels, formatted_time]  # added info
+        return [save_dir, None, None, None, None, None]
+    return [save_dir, new_dir, smooth_dir, labels, formatted_time, None]  # added info
 
-def run_video(video, src, inf_size, obj_conf_thr, iou_thr, agnostic_nms, is_stream, outputNum=1):
+def run_video(video, src, inf_size, obj_conf_thr, iou_thr, agnostic_nms, is_stream, outputNum=1, norm=False):
     """
     Takes a video (from upload or webcam), and outputs the yolo7 boxed output
 
@@ -148,8 +149,8 @@ def run_video(video, src, inf_size, obj_conf_thr, iou_thr, agnostic_nms, is_stre
     with torch.no_grad():
         if opt.update:  # update all models (to fix SourceChangeWarning)
             for opt.weights in ['yolov7.pt']:
-                save_dir = detect(opt, is_stream=True, outputNum=outputNum)
+                save_dir = detect(opt, outputNum=outputNum, is_stream=is_stream, norm=norm)
                 strip_optimizer(opt.weights)
         else:
-            save_dir = detect(opt, is_stream=True, outputNum=outputNum)
-    return save_dir
+            save_dir = detect(opt, outputNum=outputNum, is_stream=is_stream, norm=norm)
+    return [None, None, None, None, save_dir]
