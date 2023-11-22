@@ -1,3 +1,5 @@
+## Original Implementation of Smooth_grad **NOT USED**
+
 import torch
 import numpy as np
 
