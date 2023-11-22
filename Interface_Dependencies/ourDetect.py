@@ -262,8 +262,9 @@ def detect(opt, is_stream, outputNum=1, norm=False, save_img=False):
         s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
         print(f"Results saved to {save_dir}{s}")
     if dataset.mode == 'image':
-        print(f'Done. ({time.time() - t0:.3f}s)')
+        formatted_time = f"{time.time() - t0:.2f}"
+        print(f'Done. ({formatted_time}s)')
         print(allDetcs)
-        return [str(save_path), "outputs\\runs\\detect\\exp\\smoothGrad" + str(int(int(outputNum) -1)) + ".jpg", allDetcs]
+        return [str(save_path), "outputs\\runs\\detect\\exp\\smoothGrad" + str(int(int(outputNum) -1)) + ".jpg", allDetcs, formatted_time]
     else:
         return str(save_path)

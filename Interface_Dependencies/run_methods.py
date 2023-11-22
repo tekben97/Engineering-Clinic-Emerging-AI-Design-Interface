@@ -88,13 +88,13 @@ def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layor, agnostic_
     #check_requirements(exclude=('pycocotools', 'thop'))
     if opt.update:  # update all models (to fix SourceChangeWarning)
         for opt.weights in ['yolov7.pt']:
-            save_dir, smooth_dir, labels = detect(opt, outputNum=outputNum, is_stream=is_stream, norm=norm)
+            save_dir, smooth_dir, labels, formatted_time = detect(opt, outputNum=outputNum, is_stream=is_stream)
             strip_optimizer(opt.weights)
     else:
-        save_dir, smooth_dir, labels = detect(opt, outputNum=outputNum, is_stream=is_stream, norm=norm)
+        save_dir, smooth_dir, labels, formatted_time = detect(opt, outputNum=outputNum, is_stream=is_stream)
     if is_stream:
-        return [save_dir, None, None, None, None]
-    return [save_dir, new_dir, smooth_dir, labels, None]  # added info
+        return [save_dir, None, None, None, None, None]
+    return [save_dir, new_dir, smooth_dir, labels, formatted_time, None]  # added info
 
 def run_video(video, src, inf_size, obj_conf_thr, iou_thr, agnostic_nms, is_stream, outputNum=1, norm=False):
     """
