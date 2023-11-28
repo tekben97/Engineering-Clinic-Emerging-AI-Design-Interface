@@ -31,18 +31,18 @@ def run_all(source_type, im, vid, src, inf_size=640, obj_conf_thr=0.25, iou_thr=
     """_summary_
 
     Args:
-        source_type (_type_): _description_
-        im (_type_): _description_
-        vid (_type_): _description_
-        src (_type_): _description_
-        inf_size (int, optional): _description_. Defaults to 640.
-        obj_conf_thr (float, optional): _description_. Defaults to 0.25.
-        iou_thr (float, optional): _description_. Defaults to 0.45.
-        conv_layer (int, optional): _description_. Defaults to 1.
-        agnostic_nms (bool, optional): _description_. Defaults to False.
-        outputNum (int, optional): _description_. Defaults to 1.
-        is_stream (bool, optional): _description_. Defaults to False.
-        norm (bool, optional): _description_. Defaults to False.
+        source_type (str): If the source is an image or video
+        im (str/PIL): The file path or PIL of the the input image.
+        vid (str): The file path of the the input video.
+        src (str): The source of the input image, either upload or webcam
+        inf_size (int): The size of the inference. Defaults to 640
+        obj_conf_thr (float): The object confidence threshold. Defaults to 0.25
+        iou_thr (float): The intersection of union number. Defaults to 0.45
+        conv_layer (int): The number of the convolutional layer to show. Defaults to 1
+        agnostic_nms (bool): The agnostic nms boolean. Defaults to False
+        outputNum (int): Determines which gradient to show. Defaults to 1
+        is_stream (bool): Determines if the input is a stream or not. Defaults to False
+        norm (bool): Determines if the gradient will be normalized or not. Defalts to False
 
     Returns:
         _type_: _description_
@@ -66,6 +66,9 @@ def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layer, agnostic_
         iou_thr (float): The intersection of union number
         conv_layer (int): The number of the convolutional layer to show
         agnostic_nms (bool): The agnostic nms boolean
+        outputNum (int): Determines which gradient to show
+        is_stream (bool): Determines if the input is a stream or not
+        norm (bool): Determines if the gradient will be normalized or not
 
     Returns:
         List[str]: A list of strings, where each string is a file path to an output image.
@@ -121,12 +124,16 @@ def run_video(video, src, inf_size, obj_conf_thr, iou_thr, agnostic_nms, is_stre
     Takes a video (from upload or webcam), and outputs the yolo7 boxed output
 
     Args:
-        video (str): The file path of the input video
-        src (str): The source of the input video, either upload or webcam
+        video (str): The file path of the the input video.
+        src (str): The source of the input image, either upload or webcam
         inf_size (int): The size of the inference
         obj_conf_thr (float): The object confidence threshold
         iou_thr (float): The intersection of union number
+        conv_layer (int): The number of the convolutional layer to show
         agnostic_nms (bool): The agnostic nms boolean
+        outputNum (int): Determines which gradient to show
+        is_stream (bool): Determines if the input is a stream or not. Defaults to 1
+        norm (bool): Determines if the gradient will be normalized or not. Defalts to False
 
     Returns:
         str: The file path of the output video

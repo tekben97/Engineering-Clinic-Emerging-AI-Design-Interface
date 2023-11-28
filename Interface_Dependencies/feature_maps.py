@@ -15,6 +15,15 @@ transform = transforms.Compose([
 thisPath = ""
 
 def generate_feature_maps(img, con_layer):
+    """_summary_
+
+    Args:
+        img (_type_): _description_
+        con_layer (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     this_img = np.array(img)
     image = Image.fromarray(this_img, 'RGB')
     plt.imshow(image)
