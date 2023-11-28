@@ -7,8 +7,7 @@ sys.path.append('Engineering-Clinic-Emerging-AI-Design-Interface/Interface_Depen
 sys.path.append('Engineering-Clinic-Emerging-AI-Design-Interface/yolov7-main')
 sys.path.append('./')  # to run '$ python *.py' files in subdirectories
 
-from run_methods import run_image, run_video, correct_video, run_stream
-
+from run_methods import run_image, run_video, correct_video #run_stream
 
 # Gradio Interface Code
 with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
