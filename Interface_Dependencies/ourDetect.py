@@ -3,15 +3,9 @@ from pathlib import Path
 
 import cv2
 import torch
-import torch.nn as nn
 import torch.backends.cudnn as cudnn
 from numpy import random
-from torchvision import models, transforms
-import matplotlib.pyplot as plt
-from PIL import Image
-import numpy as np
 from numpy import random
-
 import torchvision
 
 import sys
@@ -23,83 +17,7 @@ from utils.general import check_img_size, check_imshow, non_max_suppression, app
     scale_coords, xyxy2xywh, set_logging
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
-# from smooth_grad import generate_vanilla_grad
 from plaus_functs import generate_vanilla_grad
-
-transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=0., std=1.)
-])
-
-thisPath = ""
-
-def generate_feature_maps(img, con_layer):
-    this_img = np.array(img)
-    image = Image.fromarray(this_img, 'RGB')
-    plt.imshow(image)
-
-    # model = models.resnet18(weights=torchvision.models.ResNet18_Weights.IMAGENET1K_V1)
-    model = models.resnet18(weights=torchvision.models.ResNet18_Weights.DEFAULT)
-
-    # we will save the conv layer weights in this list
-    model_weights =[]
-    #we will save the 49 conv layers in this list
-    conv_layers = []
-    # get all the model children as list
-    model_children = list(model.children())
-    #counter to keep count of the conv layers
-    counter = 0
-    #append all the conv layers and their respective wights to the list
-    for i in range(len(model_children)):
-        if type(model_children[i]) == nn.Conv2d:
-            counter+=1
-            model_weights.append(model_children[i].weight)
-            conv_layers.append(model_children[i])
-        elif type(model_children[i]) == nn.Sequential:
-            for j in range(len(model_children[i])):
-                for child in model_children[i][j].children():
-                    if type(child) == nn.Conv2d:
-                        counter+=1
-                        model_weights.append(child.weight)
-                        conv_layers.append(child)
-    if torch.cuda.is_available():
-        device = torch.device('cuda')
-    else:
-        device = torch.device('cpu')
-    model = model.to(device)
-
-    image = transform(image)
-    image = image.unsqueeze(0)
-    image = image.to(device)
-
-    outputs = []
-    names = []
-    for layer in conv_layers[0:]:
-        image = layer(image)
-        outputs.append(image)
-        names.append(str(layer))
-
-    processed = []
-    for feature_map in outputs:
-        feature_map = feature_map.squeeze(0)
-        gray_scale = torch.sum(feature_map,0)
-        gray_scale = gray_scale / feature_map.shape[0]
-        processed.append(gray_scale.data.cpu().numpy())
-
-    # Plot and save feature maps for each layer
-    for i, (fm, name) in enumerate(zip(processed, names)):
-        fig = plt.figure(figsize=(10, 10))
-        a = fig.add_subplot(1, 1, 1)  # You should adjust the layout as needed
-        imgplot = plt.imshow(fm, cmap='viridis')  # Adjust the colormap if needed
-        a.axis("off")
-        filename = f'layer{i}.jpg'
-        plt.savefig("outputs\\runs\\detect\\exp\\layers\\" + filename, bbox_inches='tight')
-        plt.close(fig)  # Close the figure after saving
-    
-    this_dir = "outputs\\runs\\detect\\exp\\layers\\layer" + str(int(int(con_layer) - 1)) + '.jpg'
-    print("Convolutional layers Generated")
-    return this_dir
 
 def detect(opt, is_stream, outputNum=1, norm=False, save_img=False):
     source, weights, view_img, save_txt, imgsz, trace = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size, not opt.no_trace
@@ -108,14 +26,14 @@ def detect(opt, is_stream, outputNum=1, norm=False, save_img=False):
         ('rtsp://', 'rtmp://', 'http://', 'https://'))
 
     # Directories
-    save_dir = Path(Path(opt.project) / opt.name, exist_ok=opt.exist_ok)  # increment run
+    save_dir = Path(Path(opt.project) / opt.name, exist_ok=opt.exist_ok)
     (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
 
     # Initialize
     set_logging()
     device = select_device(opt.device)
-    half = device.type != 'cpu'  # half precision only supported on CUDA
-    half = False
+    # half = device.type != 'cpu'  # half precision only supported on CUDA
+    half = False # Issue with half, when True inference time increases
 
     # Load model
     model = attempt_load(weights, map_location=device)  # load FP32 model

@@ -187,6 +187,15 @@ with gr.Blocks(title="yolov7 Interface",theme=gr.themes.Base()) as demo:
         return "outputs\\runs\\detect\\exp\\layers\\layer" + str(int(int(layer) - 1)) + '.jpg'
     
     def change_output_num(number):
+        """
+        Changes the shown gradient map based on gradio slider
+
+        Args:
+            number (int): The gradient map to show
+
+        Returns:
+            str: The file path of the output image
+        """
         return "outputs\\runs\\detect\\exp\\smoothGrad" + str(int(int(number) -1)) + '.jpg'
     
     # List of gradio components that change during method "change_file_type"

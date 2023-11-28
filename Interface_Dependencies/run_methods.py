@@ -9,7 +9,8 @@ sys.path.append('Engineering-Clinic-Emerging-AI-Design-Interface/Interface_Depen
 sys.path.append('Engineering-Clinic-Emerging-AI-Design-Interface/yolov7-main')
 sys.path.append('./')  # to run '$ python *.py' files in subdirectories
 
-from ourDetect import detect, generate_feature_maps # used for output generation
+from ourDetect import detect # used for output generation
+from feature_maps import generate_feature_maps # used for feature map generation
 from utils.general import strip_optimizer # used for opt creation
 
 
@@ -27,6 +28,25 @@ def correct_video(video):
     return video+".mp4"
 
 def run_all(source_type, im, vid, src, inf_size=640, obj_conf_thr=0.25, iou_thr=0.45, conv_layer=1, agnostic_nms=False, outputNum=1, is_stream=False, norm=False):
+    """_summary_
+
+    Args:
+        source_type (_type_): _description_
+        im (_type_): _description_
+        vid (_type_): _description_
+        src (_type_): _description_
+        inf_size (int, optional): _description_. Defaults to 640.
+        obj_conf_thr (float, optional): _description_. Defaults to 0.25.
+        iou_thr (float, optional): _description_. Defaults to 0.45.
+        conv_layer (int, optional): _description_. Defaults to 1.
+        agnostic_nms (bool, optional): _description_. Defaults to False.
+        outputNum (int, optional): _description_. Defaults to 1.
+        is_stream (bool, optional): _description_. Defaults to False.
+        norm (bool, optional): _description_. Defaults to False.
+
+    Returns:
+        _type_: _description_
+    """
     if is_stream:
         return run_image(image=im,src=src,inf_size=inf_size,obj_conf_thr=obj_conf_thr,iou_thr=iou_thr,conv_layer=conv_layer,agnostic_nms=agnostic_nms,outputNum=outputNum,is_stream=is_stream,norm=norm)
     elif source_type == "Image":
