@@ -1,3 +1,5 @@
+## These are the methods used directly by the interface to make predictions
+
 import torch
 import os
 from PIL import Image
@@ -28,7 +30,8 @@ def correct_video(video):
     return video + ".mp4"
 
 def run_all(source_type, im, vid, src, inf_size=640, obj_conf_thr=0.25, iou_thr=0.45, conv_layer=1, agnostic_nms=False, outputNum=1, is_stream=False, norm=False, weights='yolov7.pt'):
-    """_summary_
+    """
+    Takes an image or video (from upload or webcam), and outputs the yolov7 boxed output, and maybe the convolutional layers and gradient outputs
 
     Args:
         source_type (str): If the source is an image or video
@@ -43,9 +46,10 @@ def run_all(source_type, im, vid, src, inf_size=640, obj_conf_thr=0.25, iou_thr=
         outputNum (int): Determines which gradient to show. Defaults to 1
         is_stream (bool): Determines if the input is a stream or not. Defaults to False
         norm (bool): Determines if the gradient will be normalized or not. Defalts to False
+        weights (file_obj): The file path of the weights. Defaults to 'yolov7.pt'
 
     Returns:
-        _type_: _description_
+        List[str]: The list of outputs
     """
     # Weights is a file object from gradio. weights.name is the file path which is what the function needs
     weights = weights.name
@@ -71,6 +75,7 @@ def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layer, agnostic_
         outputNum (int): Determines which gradient to show
         is_stream (bool): Determines if the input is a stream or not
         norm (bool): Determines if the gradient will be normalized or not
+        weights (str): The file path of the weights
 
     Returns:
         List[str]: A list of strings, where each string is a file path to an output image.
@@ -134,8 +139,9 @@ def run_video(video, src, inf_size, obj_conf_thr, iou_thr, agnostic_nms, is_stre
         conv_layer (int): The number of the convolutional layer to show
         agnostic_nms (bool): The agnostic nms boolean
         outputNum (int): Determines which gradient to show
-        is_stream (bool): Determines if the input is a stream or not. Defaults to 1
-        norm (bool): Determines if the gradient will be normalized or not. Defalts to False
+        is_stream (bool): Determines if the input is a stream or not
+        norm (bool): Determines if the gradient will be normalized or not
+        weights (str): The file path of the weights
 
     Returns:
         str: The file path of the output video

@@ -1,3 +1,5 @@
+## Our version of the detect supplied by the yolov7 repository
+
 import time
 from pathlib import Path
 
@@ -18,6 +20,7 @@ from utils.general import check_img_size, check_imshow, non_max_suppression, app
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
 from plaus_functs import generate_vanilla_grad
+
 
 def detect(opt, is_stream, outputNum=1, norm=False, save_img=False):
     source, weights, view_img, save_txt, imgsz, trace = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size, not opt.no_trace

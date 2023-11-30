@@ -1,3 +1,5 @@
+## File to generate and save feature maps for view in the interface
+
 from torchvision import models, transforms
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -15,14 +17,15 @@ transform = transforms.Compose([
 thisPath = ""
 
 def generate_feature_maps(img, con_layer):
-    """_summary_
+    """
+    Generate feature maps for a given image and convolutional layer number (1-17)
 
     Args:
-        img (_type_): _description_
-        con_layer (_type_): _description_
+        img (PIL): The image passed in by the user
+        con_layer (int): The number corresponding to the convolutional layer to show
 
     Returns:
-        _type_: _description_
+        str: The path to the generated feature map image
     """
     this_img = np.array(img)
     image = Image.fromarray(this_img, 'RGB')
