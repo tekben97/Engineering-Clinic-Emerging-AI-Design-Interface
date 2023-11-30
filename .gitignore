@@ -1,5 +1,4 @@
 traced_model.pt
-yolov7.pt
 Temp.jpg
 runs/detect/exp/layors/layor16.jpg
 runs/detect/exp/layors/layor15.jpg
@@ -104,3 +103,9 @@ outputs/runs/detect/exp/layers/layer14.jpg
 outputs/runs/detect/exp/layers/layer15.jpg
 outputs/runs/detect/exp/layers/layer16.jpg
 Interface_Dependencies/__pycache__/feature_maps.cpython-311.pyc
+weights/yolov7-d6.pt
+weights/yolov7-e6.pt
+weights/yolov7-e6e.pt
+weights/yolov7-w6.pt
+weights/yolov7.pt
+weights/yolov7x.pt
