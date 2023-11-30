@@ -1,12 +1,13 @@
-import gradio as gr # Gradio package for interface
+## Interface Version 2: The current interface
+
 import sys          # System package for path dependencies
 sys.path.append('Interface_Dependencies')
 sys.path.append('Engineering-Clinic-Emerging-AI-Design-Interface/Interface_Dependencies')
 sys.path.append('Engineering-Clinic-Emerging-AI-Design-Interface/yolov7-main')
 sys.path.append('./')  # to run '$ python *.py' files in subdirectories
-
 from run_methods import run_all, correct_video
 
+import gradio as gr # Gradio package for interface
 
 # Gradio Interface Code
 with gr.Blocks(title="yolov7 Interface",theme=gr.themes.Base()) as demo:
@@ -15,7 +16,7 @@ with gr.Blocks(title="yolov7 Interface",theme=gr.themes.Base()) as demo:
     # Image & Video Interface for yolov7 Model
     Upload your own image or video and watch yolov7 try to guess what it is!
     """)
-    # For for input & output settings
+    # Row for for input & output settings
     with gr.Row() as file_settings:
         # Allows choice for uploading image or video [for all]
         file_type = gr.Radio(label="File Type",info="Choose 'Image' if you are uploading an image, Choose 'Video' if you are uploading a video",
@@ -31,7 +32,7 @@ with gr.Blocks(title="yolov7 Interface",theme=gr.themes.Base()) as demo:
         # Allows choice of which smooth gradient output to show (1-3) [only for images]
         output_map = gr.Slider(label="Map Output Number",info="Choose a whole number from 1 to 3 to see the corresponding attribution map",
                                minimum=1,maximum=3,value=1,interactive=True,step=1,show_label=True)
-    # For all inputs & outputs
+    # Row for all inputs & outputs
     with gr.Row() as inputs_outputs:
         # Default input image: Visible, Upload from computer
         input_im = gr.Image(source="upload",type='filepath',label="Input Image",
@@ -59,13 +60,13 @@ with gr.Blocks(title="yolov7 Interface",theme=gr.themes.Base()) as demo:
     # List of components for clearing
     clear_comp_list = [input_im, output_box_im, output_conv_im, output_grad_im, labels, formatted_time, input_vid, output_box_vid]
     
-    # For start & clear buttons
+    # Row for start & clear buttons
     with gr.Row() as buttons:
         start_but = gr.Button(label="Start")
         clear_but = gr.ClearButton(value='Clear All',components=clear_comp_list,
                    interactive=True,visible=True)
         
-    # For model settings
+    # Row for model settings
     with gr.Row() as model_settings:
         # Pixel size of the inference [Possibly useless, may remove]
         inf_size = gr.Number(label='Inference Size (pixels)',value=640,precision=0)
@@ -77,6 +78,8 @@ with gr.Blocks(title="yolov7 Interface",theme=gr.themes.Base()) as demo:
         agnostic_nms = gr.Checkbox(label='Agnostic NMS',value=True)
         # Normailze gradient boolean
         norm = gr.Checkbox(label='Normalize Gradient',value=False,visible=True)
+        # Weights File Upload
+        weights = gr.File(label='Weights File',type='file',file_count='single',file_types=["pt"],value="weights/yolov7.pt")   
     
     def change_file_type(file, source, is_stream):
         """
@@ -205,7 +208,7 @@ with gr.Blocks(title="yolov7 Interface",theme=gr.themes.Base()) as demo:
     # List of gradio components that are input into the run_all method (when start button is clicked)
     run_inputs = [file_type, input_im, input_vid, source_type, 
                   inf_size, obj_conf_thr, iou_thr, conv_layer, 
-                  agnostic_nms, output_map, video_stream, norm]
+                  agnostic_nms, output_map, video_stream, norm, weights]
     # List of gradio components that are output from the run_all method (when start button is clicked)
     run_outputs = [output_box_im, output_conv_im, output_grad_im, labels, formatted_time, output_box_vid]
     
@@ -228,7 +231,7 @@ with gr.Blocks(title="yolov7 Interface",theme=gr.themes.Base()) as demo:
 
 if __name__== "__main__" :
     # If True, it launches Gradio interface
-    # If False, it runs without the interface
+    # If False, it runs without the interface (for better debugging)
     if True:
         # demo.queue().launch(share=True)
         demo.queue().launch()

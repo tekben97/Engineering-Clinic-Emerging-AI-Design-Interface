@@ -25,9 +25,9 @@ def correct_video(video):
         str: The file path of the output video
     """
     os.system("ffmpeg -i {file_str} -y -vcodec libx264 -acodec aac {file_str}.mp4".format(file_str = video))
-    return video+".mp4"
+    return video + ".mp4"
 
-def run_all(source_type, im, vid, src, inf_size=640, obj_conf_thr=0.25, iou_thr=0.45, conv_layer=1, agnostic_nms=False, outputNum=1, is_stream=False, norm=False):
+def run_all(source_type, im, vid, src, inf_size=640, obj_conf_thr=0.25, iou_thr=0.45, conv_layer=1, agnostic_nms=False, outputNum=1, is_stream=False, norm=False, weights='yolov7.pt'):
     """_summary_
 
     Args:
@@ -47,14 +47,16 @@ def run_all(source_type, im, vid, src, inf_size=640, obj_conf_thr=0.25, iou_thr=
     Returns:
         _type_: _description_
     """
+    # Weights is a file object from gradio. weights.name is the file path which is what the function needs
+    weights = weights.name
     if is_stream:
-        return run_image(image=im,src=src,inf_size=inf_size,obj_conf_thr=obj_conf_thr,iou_thr=iou_thr,conv_layer=conv_layer,agnostic_nms=agnostic_nms,outputNum=outputNum,is_stream=is_stream,norm=norm)
+        return run_image(image=im,src=src,inf_size=inf_size,obj_conf_thr=obj_conf_thr,iou_thr=iou_thr,conv_layer=conv_layer,agnostic_nms=agnostic_nms,outputNum=outputNum,is_stream=is_stream,norm=norm,weights=weights)
     elif source_type == "Image":
-        return run_image(image=im,src=src,inf_size=inf_size,obj_conf_thr=obj_conf_thr,iou_thr=iou_thr,conv_layer=conv_layer,agnostic_nms=agnostic_nms,outputNum=outputNum,is_stream=is_stream,norm=norm)
+        return run_image(image=im,src=src,inf_size=inf_size,obj_conf_thr=obj_conf_thr,iou_thr=iou_thr,conv_layer=conv_layer,agnostic_nms=agnostic_nms,outputNum=outputNum,is_stream=is_stream,norm=norm,weights=weights)
     elif source_type == "Video":
-        return run_video(video=vid,src=src,inf_size=inf_size,obj_conf_thr=obj_conf_thr,iou_thr=iou_thr,agnostic_nms=agnostic_nms,is_stream=is_stream,outputNum=outputNum)
+        return run_video(video=vid,src=src,inf_size=inf_size,obj_conf_thr=obj_conf_thr,iou_thr=iou_thr,agnostic_nms=agnostic_nms,is_stream=is_stream,outputNum=outputNum,norm=norm,weights=weights)
 
-def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layer, agnostic_nms, outputNum, is_stream, norm):
+def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layer, agnostic_nms, outputNum, is_stream, norm, weights):
     """
     Takes an image (from upload or webcam), and outputs the yolo7 boxed output and the convolution layers
 
@@ -87,7 +89,7 @@ def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layer, agnostic_
     else:
         agnostic_nms = 'store_false'
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', nargs='+', type=str, default='yolov7.pt', help='model.pt path(s)')
+    parser.add_argument('--weights', nargs='+', type=str, default=weights, help='model.pt path(s)')
     parser.add_argument('--source', type=str, default=image, help='source')  # file/folder, 0 for webcam
     parser.add_argument('--img-size', type=int, default=inf_size, help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=obj_conf_thr, help='object confidence threshold')
@@ -119,7 +121,7 @@ def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layer, agnostic_
         return [save_dir, None, None, None, None, None]
     return [save_dir, new_dir, smooth_dir, labels, formatted_time, None]  # added info
 
-def run_video(video, src, inf_size, obj_conf_thr, iou_thr, agnostic_nms, is_stream, outputNum=1, norm=False):
+def run_video(video, src, inf_size, obj_conf_thr, iou_thr, agnostic_nms, is_stream, outputNum, norm, weights):
     """
     Takes a video (from upload or webcam), and outputs the yolo7 boxed output
 
@@ -149,7 +151,7 @@ def run_video(video, src, inf_size, obj_conf_thr, iou_thr, agnostic_nms, is_stre
     else:
         agnostic_nms = 'store_false'
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', nargs='+', type=str, default='yolov7.pt', help='model.pt path(s)')
+    parser.add_argument('--weights', nargs='+', type=str, default=weights, help='model.pt path(s)')
     parser.add_argument('--source', type=str, default=video, help='source')  # file/folder, 0 for webcam
     parser.add_argument('--img-size', type=int, default=inf_size, help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=obj_conf_thr, help='object confidence threshold')
