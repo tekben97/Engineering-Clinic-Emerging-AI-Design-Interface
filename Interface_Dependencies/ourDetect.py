@@ -19,14 +19,16 @@ from utils.general import check_img_size, check_imshow, non_max_suppression, app
     scale_coords, xyxy2xywh, set_logging
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
-from plaus_functs import generate_vanilla_grad
-
+# from smooth_grad import generate_vanilla_grad
+from plaus_functs import generate_vanilla_grad, eval_plausibility, generate_other_grad
 
 def detect(opt, is_stream, outputNum=1, norm=False, save_img=False):
     source, weights, view_img, save_txt, imgsz, trace = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size, not opt.no_trace
     save_img = not opt.nosave and not source.endswith('.txt')  # save inference images
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
         ('rtsp://', 'rtmp://', 'http://', 'https://'))
+
+    eval_individual_data = []
 
     # Directories
     save_dir = Path(Path(opt.project) / opt.name, exist_ok=opt.exist_ok)
@@ -118,6 +120,7 @@ def detect(opt, is_stream, outputNum=1, norm=False, save_img=False):
             save_path = str(save_dir / p.name)  # img.jpg
             txt_path = str(save_dir / 'labels' / p.stem) + ('' if dataset.mode == 'image' else f'_{frame}')  # img.txt
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
+
             if len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
@@ -136,6 +139,8 @@ def detect(opt, is_stream, outputNum=1, norm=False, save_img=False):
                     torchvision.utils.save_image(smooth_gradient3,fp="outputs\\runs\\detect\\exp\\smoothGrad2.jpg")
                     model.eval()
                 
+                targets = []
+                
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
                     if save_txt:  # Write to file
@@ -143,13 +148,20 @@ def detect(opt, is_stream, outputNum=1, norm=False, save_img=False):
                         line = (cls, *xywh, conf) if opt.save_conf else (cls, *xywh)  # label format
                         with open(txt_path + '.txt', 'a') as f:
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
+                    xyxy = torch.tensor(xyxy)
+                    target = [int(cls.item())] + xyxy.tolist()
+                    targets.append(target)
 
                     if save_img or view_img:  # Add bbox to image
                         label = f'{names[int(cls)]} {conf:.2f}'
                         allDetcs.append(label)
                     if (names[int(cls)] not in labels or labels[names[int(cls)]] < conf.item()) and conf is not None:
                         plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
-                    
+                
+                attr_tensor = generate_other_grad(model=model, input_tensor=img, device=device)
+                print("Targets:", target)
+                plaus_score = eval_plausibility(imgs=[im0], targets=targets, attr_tensor=attr_tensor, device=device)
+                print(plaus_score[0].item())
 
             # Print time (inference + NMS)
             print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}ms) NMS')
@@ -178,7 +190,6 @@ def detect(opt, is_stream, outputNum=1, norm=False, save_img=False):
                             save_path += '.mp4'
                         vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'h264'), fps, (w, h))
                     vid_writer.write(im0)
-                    
 
     if save_txt or save_img:
         s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''

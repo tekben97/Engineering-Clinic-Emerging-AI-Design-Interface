@@ -250,7 +250,7 @@ if __name__== "__main__" :
     # If True, it launches Gradio interface
     # If False, it runs without the interface
     if True:
-        demo.queue().launch(share=True) 
+        demo.queue().launch(share=False) 
     else:
-        # run_image("inference\\images\\bus.jpg","Computer",640,0.45,0.25,1,True)
-        run_video("0", "Webcam", 640, 0.25, 0.45, True, True)
+        run_image("inference\\images\\bus.jpg","Computer",640,0.45,0.25,1,True)
+        #run_video("0", "Webcam", 640, 0.25, 0.45, True, True)
