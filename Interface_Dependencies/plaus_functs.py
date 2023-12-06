@@ -102,36 +102,39 @@ def eval_plausibility(imgs, targets, attr_tensor, device, debug=False):
     eval_individual_data = []
     # targets_ = [[targets[i] for i in range(len(targets)) if int(targets[i][0]) == j] for j in range(int(max(targets[:,0])))]
     for i, im0 in enumerate(imgs):
-        if len(targets[i]) == 0:
-            eval_individual_data.append([torch.tensor(0).to(device),])
-        else:
-            IoU_list = []
-            xyxy_pred = targets[i][-4:] # * torch.tensor([im0.shape[2], im0.shape[1], im0.shape[2], im0.shape[1]])
-            print(xyxy_pred)
-            xyxy_center = corners_coords(xyxy_pred) * torch.tensor([im0.shape[1], im0.shape[2], im0.shape[1], im0.shape[2]])
-            c1, c2 = (int(xyxy_center[0]), int(xyxy_center[1])), (int(xyxy_center[2]), int(xyxy_center[3]))
-            attr = (normalize_tensor(torch.abs(attr_tensor[i].clone().detach())))
-            if torch.isnan(attr).any():
-                attr = torch.nan_to_num(attr, nan=0.0)
-            IoU_num = (torch.sum(attr[:,c1[1]:c2[1], c1[0]:c2[0]]))
-            IoU_denom = torch.sum(attr)
-            
-            IoU_ = (IoU_num / IoU_denom)
-            if debug:
-                IoU = IoU_ if not math.isnan(IoU_) else 0.0
-                plaus_num_nan += 1 if math.isnan(IoU_) else 0
+        IoU_list = []
+        for target in targets:
+            if len(targets) == 0:
+                eval_individual_data.append([torch.tensor(0).to(device),])
             else:
-                IoU = IoU_
-            IoU_list.append(IoU.clone().detach().cpu())
-        list_mean = torch.mean(torch.tensor(IoU_list))
-        eval_totals += list_mean if not math.isnan(list_mean) else 0.0
-        eval_individual_data.append(IoU_list)
+                xyxy_pred = target[-4:] # * torch.tensor([im0.shape[2], im0.shape[1], im0.shape[2], im0.shape[1]])
+                xyxy_center = corners_coords(xyxy_pred) * torch.tensor([im0.shape[1], im0.shape[2], im0.shape[1], im0.shape[2]])
+                c1, c2 = (int(xyxy_center[0]), int(xyxy_center[1])), (int(xyxy_center[2]), int(xyxy_center[3]))
+                attr = (normalize_tensor(torch.abs(attr_tensor[0].clone().detach())))
+                if torch.isnan(attr).any():
+                    attr = torch.nan_to_num(attr, nan=0.0)
+                IoU_num = torch.sum(attr[:,c1[1]:c2[1], c1[0]:c2[0]])                
+                print("Numer:", IoU_num)
+                IoU_denom = torch.sum(attr)
+                print("Denom:", IoU_denom)
+                
+                IoU_ = (IoU_num / IoU_denom)
+                if debug:
+                    IoU = IoU_ if not math.isnan(IoU_) else 0.0
+                    plaus_num_nan += 1 if math.isnan(IoU_) else 0
+                else:
+                    IoU = IoU_
+                IoU_list.append(IoU.clone().detach().cpu())
+            #list_mean = torch.mean(torch.tensor(IoU_list))
+            #eval_totals += list_mean if not math.isnan(list_mean) else 0.0
+                #eval_individual_data.append(IoU_list)
+                # Calculate mean and append to eval_individual_data
+                eval_individual_data.append(IoU_list)
 
     if debug:
         return torch.tensor(eval_totals).requires_grad_(True), plaus_num_nan
     else:
-        return torch.tensor(eval_totals).requires_grad_(True), eval_individual_data
-
+        return eval_individual_data
 
 def corners_coords(center_xywh):
     center_x, center_y, w, h = center_xywh

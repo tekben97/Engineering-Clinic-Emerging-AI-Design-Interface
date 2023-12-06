@@ -159,9 +159,11 @@ def detect(opt, is_stream, outputNum=1, norm=False, save_img=False):
                         plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
                 
                 attr_tensor = generate_other_grad(model=model, input_tensor=img, device=device)
-                print("Targets:", target)
-                plaus_score = eval_plausibility(imgs=[im0], targets=targets, attr_tensor=attr_tensor, device=device)
-                print(plaus_score[0].item())
+                print("Targets:", targets)
+                print("Attr:", len(attr_tensor))
+                all_plaus = eval_plausibility(imgs=[im0], targets=targets, attr_tensor=attr_tensor, device=device)
+                for plaus in all_plaus:
+                    print(plaus[0].item())
 
             # Print time (inference + NMS)
             print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}ms) NMS')

@@ -18,7 +18,7 @@ def normalize_tensor(image_3d):
     vmin = torch.min(image_3d)
     image_2d = image_3d - vmin
     vmax = torch.max(image_2d)
-    return (image_2d / vmax)
+    return image_2d / vmax
 
 def format_img(img_):
     img_ = img_     # unnormalize
