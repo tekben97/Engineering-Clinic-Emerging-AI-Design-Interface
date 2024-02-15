@@ -47,9 +47,11 @@ with gr.Blocks(title="yolov7 Interface",theme=gr.themes.Base()) as demo:
         output_grad_im = gr.Image(type='filepath',label="Output Smooth Gradient",
                                   show_download_button=True,show_share_button=True,interactive=False,visible=True)
         # Default label output textbox: Visible
-        labels = gr.Textbox(label='Top Predictions', value = "")
+        labels = gr.Textbox(label='Top Predictions:', value = "")
+        # Default plaus output textbox: Visible
+        plaus = gr.Textbox(label = "Plausibility Score:", value="")
         # Default time output textbox: Visible
-        formatted_time = gr.Textbox(label = 'Time to Run in Seconds:', value = "")
+        formatted_time = gr.Textbox(label = 'Total and Detection Time in Seconds:', value = "")
         
         # Default input video: Not visible, Upload from computer
         input_vid =  gr.Video(source="upload",label="Input Video",
@@ -58,7 +60,7 @@ with gr.Blocks(title="yolov7 Interface",theme=gr.themes.Base()) as demo:
         output_box_vid = gr.Video(label="Output Video",show_share_button=True,visible=False)
     
     # List of components for clearing
-    clear_comp_list = [input_im, output_box_im, output_conv_im, output_grad_im, labels, formatted_time, input_vid, output_box_vid]
+    clear_comp_list = [input_im, output_box_im, output_conv_im, output_grad_im, labels, plaus, formatted_time, input_vid, output_box_vid]
     
     # Row for start & clear buttons
     with gr.Row() as buttons:
@@ -108,6 +110,7 @@ with gr.Blocks(title="yolov7 Interface",theme=gr.themes.Base()) as demo:
                     output_box_vid: gr.Video(visible=False),
                     norm: gr.Checkbox(visible=True),
                     labels: gr.Textbox(visible=True),
+                    plaus: gr.Textbox(visible=True),
                     formatted_time: gr.Textbox(visible=True)
                 }
             elif source == "Webcam":
@@ -124,6 +127,7 @@ with gr.Blocks(title="yolov7 Interface",theme=gr.themes.Base()) as demo:
                     output_box_vid: gr.Video(visible=False),
                     norm: gr.Checkbox(visible=True),
                     labels: gr.Textbox(visible=True),
+                    plaus: gr.Textbox(visible=True),
                     formatted_time: gr.Textbox(visible=True)
                 }
         elif file == "Video":
@@ -141,6 +145,7 @@ with gr.Blocks(title="yolov7 Interface",theme=gr.themes.Base()) as demo:
                     output_box_vid: gr.Video(label="Output Video",show_share_button=True,visible=True),
                     norm: gr.Checkbox(visible=False),
                     labels: gr.Textbox(visible=False),
+                    plaus: gr.Textbox(visible=True),
                     formatted_time: gr.Textbox(visible=False)
                 }
             elif source == "Webcam":
@@ -158,6 +163,7 @@ with gr.Blocks(title="yolov7 Interface",theme=gr.themes.Base()) as demo:
                         output_box_vid: gr.Video(visible=False),
                         norm: gr.Checkbox(visible=False),
                         labels: gr.Textbox(visible=False),
+                        plaus: gr.Textbox(visible=True),
                         formatted_time: gr.Textbox(visible=False)
                     }
                 elif not is_stream:
@@ -174,6 +180,7 @@ with gr.Blocks(title="yolov7 Interface",theme=gr.themes.Base()) as demo:
                         output_box_vid: gr.Video(label="Output Video",show_share_button=True,visible=True),
                         norm: gr.Checkbox(visible=False),
                         labels: gr.Textbox(visible=False),
+                        plaus: gr.Textbox(visible=True),
                         formatted_time: gr.Textbox(visible=False)
                     }
                 
@@ -204,13 +211,14 @@ with gr.Blocks(title="yolov7 Interface",theme=gr.themes.Base()) as demo:
     # List of gradio components that change during method "change_file_type"
     change_comp_list = [conv_layer, video_stream, output_map, 
                         input_im, output_box_im, output_conv_im, output_grad_im,
-                        input_vid, output_box_vid, norm, labels, formatted_time]
+                        input_vid, output_box_vid, norm, labels, plaus, formatted_time]
     # List of gradio components that are input into the run_all method (when start button is clicked)
     run_inputs = [file_type, input_im, input_vid, source_type, 
                   inf_size, obj_conf_thr, iou_thr, conv_layer, 
                   agnostic_nms, output_map, video_stream, norm, weights]
+    
     # List of gradio components that are output from the run_all method (when start button is clicked)
-    run_outputs = [output_box_im, output_conv_im, output_grad_im, labels, formatted_time, output_box_vid]
+    run_outputs = [output_box_im, output_conv_im, output_grad_im, labels, plaus, formatted_time, output_box_vid]
     
     # When these settings are changed, the change_file_type method is called
     file_type.input(change_file_type, show_progress=True, inputs=[file_type, source_type, video_stream], outputs=change_comp_list)
@@ -229,6 +237,7 @@ with gr.Blocks(title="yolov7 Interface",theme=gr.themes.Base()) as demo:
     # When the demo is first started, run the change_file_type method to ensure default settings
     demo.load(change_file_type, show_progress=True, inputs=[file_type, source_type, video_stream], outputs=change_comp_list)
 
+#Used for debugging
 if __name__== "__main__" :
     # If True, it launches Gradio interface
     # If False, it runs without the interface (for better debugging)
@@ -236,5 +245,7 @@ if __name__== "__main__" :
         # demo.queue().launch(share=True)
         demo.queue().launch()
     else:
-        # run_image("inference\\images\\bus.jpg","Computer",640,0.45,0.25,1,True)
-        run_video("0", "Webcam", 640, 0.25, 0.45, True, True)
+        #Test with yolo (weights and normal photo)
+        run_all('Image','references\\inference\\images\\bus.jpg', 'None', 'Computer', 640,0.25,0.45,1,True,1,False,False,"yolov7.pt")
+        #Test drone (weights and drone photo)
+        #run_all('Image','references\\inference\\images\\V_DRONE_113_34.jpg', 'None', 'Computer', 640,0.25,0.45,1,True,1,False,False,"drone_63.pt")

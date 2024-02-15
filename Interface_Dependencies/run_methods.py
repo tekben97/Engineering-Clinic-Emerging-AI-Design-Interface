@@ -4,6 +4,7 @@ import torch
 import os
 from PIL import Image
 import argparse
+import time
 
 import sys
 sys.path.append('Interface_Dependencies')
@@ -29,7 +30,7 @@ def correct_video(video):
     os.system("ffmpeg -i {file_str} -y -vcodec libx264 -acodec aac {file_str}.mp4".format(file_str = video))
     return video + ".mp4"
 
-def run_all(source_type, im, vid, src, inf_size=640, obj_conf_thr=0.25, iou_thr=0.45, conv_layer=1, agnostic_nms=False, outputNum=1, is_stream=False, norm=False, weights='yolov7.pt'):
+def run_all(source_type, im, vid, src, inf_size=640, obj_conf_thr=0.25, iou_thr=0.45, conv_layer=1, agnostic_nms=False, outputNum=1, is_stream=False, norm=False, weights='yolov7.pt', debug=False):
     """
     Takes an image or video (from upload or webcam), and outputs the yolov7 boxed output, and maybe the convolutional layers and gradient outputs
 
@@ -51,8 +52,17 @@ def run_all(source_type, im, vid, src, inf_size=640, obj_conf_thr=0.25, iou_thr=
     Returns:
         List[str]: The list of outputs
     """
+    if debug:
+        print("Params used in run_all function:")
+        print(locals())
+
     # Weights is a file object from gradio. weights.name is the file path which is what the function needs
-    weights = weights.name
+    if weights == "yolov7.pt":
+        weights = weights
+    elif weights == "drone_63.pt":
+        weights = weights
+    else:
+        weights = weights.name
     if is_stream:
         return run_image(image=im,src=src,inf_size=inf_size,obj_conf_thr=obj_conf_thr,iou_thr=iou_thr,conv_layer=conv_layer,agnostic_nms=agnostic_nms,outputNum=outputNum,is_stream=is_stream,norm=norm,weights=weights)
     elif source_type == "Image":
@@ -60,7 +70,7 @@ def run_all(source_type, im, vid, src, inf_size=640, obj_conf_thr=0.25, iou_thr=
     elif source_type == "Video":
         return run_video(video=vid,src=src,inf_size=inf_size,obj_conf_thr=obj_conf_thr,iou_thr=iou_thr,agnostic_nms=agnostic_nms,is_stream=is_stream,outputNum=outputNum,norm=norm,weights=weights)
 
-def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layer, agnostic_nms, outputNum, is_stream, norm, weights):
+def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layer, agnostic_nms, outputNum, is_stream, norm, weights, debug=False):
     """
     Takes an image (from upload or webcam), and outputs the yolo7 boxed output and the convolution layers
 
@@ -80,6 +90,7 @@ def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layer, agnostic_
     Returns:
         List[str]: A list of strings, where each string is a file path to an output image.
     """
+    t0 = time.time()
     obj_conf_thr = float(obj_conf_thr)
     iou_thr = float(iou_thr)
     agnostic_nms = bool(agnostic_nms)
@@ -114,19 +125,22 @@ def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layer, agnostic_
     parser.add_argument('--no-trace', action='store_true', help='don`t trace model')
     opt = parser.parse_args()
     opt.no_trace = True
-    print(opt)
+    if debug:
+        print(opt)
     #check_requirements(exclude=('pycocotools', 'thop'))
     if opt.update:  # update all models (to fix SourceChangeWarning)
         for opt.weights in ['yolov7.pt']:
-            save_dir, smooth_dir, labels, formatted_time = detect(opt, outputNum=outputNum, is_stream=is_stream, norm=norm)
+            save_dir, smooth_dir, labels, plaus, formatted_time = detect(opt, outputNum=outputNum, is_stream=is_stream, norm=norm)
             strip_optimizer(opt.weights)
     else:
-        save_dir, smooth_dir, labels, formatted_time = detect(opt, outputNum=outputNum, is_stream=is_stream, norm=norm)
+        save_dir, smooth_dir, labels, plaus, formatted_time = detect(opt, outputNum=outputNum, is_stream=is_stream, norm=norm)
     if is_stream:
         return [save_dir, None, None, None, None, None]
-    return [save_dir, new_dir, smooth_dir, labels, formatted_time, None]  # added info
+    total_time = round(float(time.time() - t0) + float(formatted_time), 2)
+    #Formatted_time is the detection time (this is for future optimisation)
+    return [save_dir, new_dir, smooth_dir, labels, plaus, str(total_time) + " - " + str(formatted_time), None]  # added info
 
-def run_video(video, src, inf_size, obj_conf_thr, iou_thr, agnostic_nms, is_stream, outputNum, norm, weights):
+def run_video(video, src, inf_size, obj_conf_thr, iou_thr, agnostic_nms, is_stream, outputNum, norm, weights, debug=False):
     """
     Takes a video (from upload or webcam), and outputs the yolo7 boxed output
 
@@ -177,7 +191,8 @@ def run_video(video, src, inf_size, obj_conf_thr, iou_thr, agnostic_nms, is_stre
     parser.add_argument('--no-trace', action='store_true', help='don`t trace model')
     opt = parser.parse_args()
     opt.batch_size = 1
-    print(opt)
+    if debug:
+        print(opt)
     #check_requirements(exclude=('pycocotools', 'thop'))
     with torch.no_grad():
         if opt.update:  # update all models (to fix SourceChangeWarning)

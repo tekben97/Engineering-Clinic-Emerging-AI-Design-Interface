@@ -1,214 +1,231 @@
 import torch
 import numpy as np
 from plot_functs import * 
+from plot_functs import imshow
 from plot_functs import normalize_tensor
 import math   
 import time
+import matplotlib.path as mplPath
+from matplotlib.path import Path
+from utils.general import scale_coords, xyxy2xywh
+import torchvision
 
-def generate_other_grad(model, input_tensor, loss_func = None, 
-                          targets=None, metric=None, out_num = 1, 
-                          norm=False, device='cpu'):    
+def get_gradient(img, grad_wrt, norm=True, absolute=True, grayscale=True, keepmean=False):
     """
-    Computes the vanilla gradient of the input tensor with respect to the output of the given model.
+    Compute the gradient of an image with respect to a given tensor.
 
     Args:
-        model (torch.nn.Module): The model to compute the gradient with respect to.
-        input_tensor (torch.Tensor): The input tensor to compute the gradient for.
-        loss_func (callable, optional): The loss function to use. If None, the gradient is computed with respect to the output tensor.
-        targets (torch.Tensor, optional): The target tensor to use with the loss function. Defaults to None.
-        metric (callable, optional): The metric function to use with the loss function. Defaults to None.
-        out_num (int, optional): The index of the output tensor to compute the gradient with respect to. Defaults to 1.
-        norm (bool, optional): Whether to normalize the attribution map. Defaults to False.
-        device (str, optional): The device to use for computation. Defaults to 'cpu'.
-    
+        img (torch.Tensor): The input image tensor.
+        grad_wrt (torch.Tensor): The tensor with respect to which the gradient is computed.
+        norm (bool, optional): Whether to normalize the gradient. Defaults to True.
+        absolute (bool, optional): Whether to take the absolute values of the gradients. Defaults to True.
+        grayscale (bool, optional): Whether to convert the gradient to grayscale. Defaults to True.
+        keepmean (bool, optional): Whether to keep the mean value of the attribution map. Defaults to False.
+
     Returns:
-        torch.Tensor: The attribution map computed as the gradient of the input tensor with respect to the output tensor.
+        torch.Tensor: The computed attribution map.
+
     """
-    # Set model.train() at the beginning and revert back to original mode (model.eval() or model.train()) at the end
-    train_mode = model.training
-    if not train_mode:
-        model.train()
-
-    # Set requires_grad attribute of tensor. Important for computing gradients
-    input_tensor.requires_grad = True
-    
-    # Zero gradients
-    model.zero_grad()
-
-    # Forward pass
-    train_out = model(input_tensor) # training outputs (no inference outputs in train mode)
-    
-    # train_out[1] = torch.Size([4, 3, 80, 80, 7]) HxWx(#anchorxC) cls (class probabilities)
-    # train_out[0] = torch.Size([4, 3, 160, 160, 7]) HxWx(#anchorx4) reg (location and scaling)
-    # train_out[2] = torch.Size([4, 3, 40, 40, 7]) HxWx(#anchorx1) obj (objectness score or confidence)
-    
-    if loss_func is None:
-        grad_wrt = train_out[out_num]
-        grad_wrt_outputs = torch.ones_like(grad_wrt)
-    else:
-        loss, loss_items = loss_func(train_out, targets.to(device), input_tensor, metric=metric)  # loss scaled by batch_size
-        grad_wrt = loss
-        grad_wrt_outputs = None
-        # loss.backward(retain_graph=True, create_graph=True)
-        # gradients = input_tensor.grad
-    
-    gradients = torch.autograd.grad(grad_wrt, input_tensor, 
-                                        grad_outputs=grad_wrt_outputs, 
-                                        retain_graph=True, create_graph=True)
-
-    # Convert gradients to numpy array
-    gradients = gradients[0].detach().cpu().numpy()
-
+    grad_wrt_outputs = torch.ones_like(grad_wrt)
+    gradients = torch.autograd.grad(grad_wrt, img, 
+                                    grad_outputs=grad_wrt_outputs, 
+                                    retain_graph=True,
+                                    # create_graph=True, # Create graph to allow for higher order derivatives but slows down computation significantly
+                                    )
+    attribution_map = gradients[0]
+    if absolute:
+        attribution_map = torch.abs(attribution_map) # Take absolute values of gradients
+    if grayscale: # Convert to grayscale, saves vram and computation time for plaus_eval
+        attribution_map = torch.sum(attribution_map, 1, keepdim=True)
     if norm:
-        # Take absolute values of gradients
-        gradients = np.absolute(gradients)
+        if keepmean:
+            attmean = torch.mean(attribution_map)
+            attmin = torch.min(attribution_map)
+            attmax = torch.max(attribution_map)
+        attribution_map = normalize_batch(attribution_map) # Normalize attribution maps per image in batch
+        if keepmean:
+            attribution_map -= attribution_map.mean()
+            attribution_map += (attmean / (attmax - attmin))
+        
+    return attribution_map
 
-        # Sum across color channels
-        attribution_map = np.sum(gradients, axis=0)
-
-        # Normalize attribution map
-        attribution_map /= np.max(attribution_map)
-    else:
-        # Sum across color channels
-        attribution_map = gradients
-
-    # Set model back to original mode
-    if not train_mode:
-        model.eval()
-    
-    return torch.tensor(attribution_map, dtype=torch.float32, device=device)
-
-def eval_plausibility(imgs, targets, attr_tensor, device, debug=False):
+def get_gaussian(img, grad_wrt, norm=True, absolute=True, grayscale=True, keepmean=False):
     """
-    Evaluate the plausibility of an object detection prediction by computing the Intersection over Union (IoU) between
-    the predicted bounding box and the ground truth bounding box.
+    Generate Gaussian noise based on the input image.
 
     Args:
-        im0 (numpy.ndarray): The input image.
-        targets (list): A list of targets, where each target is a list containing the class label and the ground truth
-            bounding box coordinates in the format [class_label, x1, y1, x2, y2].
-        attr (torch.Tensor): A tensor containing the normalized attribute values for the predicted
-            bounding box.
+        img (torch.Tensor): Input image.
+        grad_wrt: Gradient with respect to the input image.
+        norm (bool, optional): Whether to normalize the generated noise. Defaults to True.
+        absolute (bool, optional): Whether to take the absolute values of the gradients. Defaults to True.
+        grayscale (bool, optional): Whether to convert the noise to grayscale. Defaults to True.
+        keepmean (bool, optional): Whether to keep the mean of the noise. Defaults to False.
 
     Returns:
-        float: The total IoU score for all predicted bounding boxes.
+        torch.Tensor: Generated Gaussian noise.
     """
-    # if len(targets) == 0:
-    #     return 0
-    # MIGHT NEED TO NORMALIZE OR TAKE ABS VAL OF ATTR
-    # ALSO MIGHT NORMALIZE FOR THE SIZE OF THE BBOX
-    eval_totals = 0
-    plaus_num_nan = 0
-    eval_individual_data = []
-    # targets_ = [[targets[i] for i in range(len(targets)) if int(targets[i][0]) == j] for j in range(int(max(targets[:,0])))]
-    for i, im0 in enumerate(imgs):
-        IoU_list = []
-        for target in targets:
-            if len(targets) == 0:
-                eval_individual_data.append([torch.tensor(0).to(device),])
-            else:
-                xyxy_pred = target[-4:] # * torch.tensor([im0.shape[2], im0.shape[1], im0.shape[2], im0.shape[1]])
-                xyxy_center = corners_coords(xyxy_pred) * torch.tensor([im0.shape[1], im0.shape[2], im0.shape[1], im0.shape[2]])
-                c1, c2 = (int(xyxy_center[0]), int(xyxy_center[1])), (int(xyxy_center[2]), int(xyxy_center[3]))
-                attr = (normalize_tensor(torch.abs(attr_tensor[0].clone().detach())))
-                if torch.isnan(attr).any():
-                    attr = torch.nan_to_num(attr, nan=0.0)
-                IoU_num = torch.sum(attr[:,c1[1]:c2[1], c1[0]:c2[0]])                
-                print("Numer:", IoU_num)
-                IoU_denom = torch.sum(attr)
-                print("Denom:", IoU_denom)
-                
-                IoU_ = (IoU_num / IoU_denom)
-                if debug:
-                    IoU = IoU_ if not math.isnan(IoU_) else 0.0
-                    plaus_num_nan += 1 if math.isnan(IoU_) else 0
-                else:
-                    IoU = IoU_
-                IoU_list.append(IoU.clone().detach().cpu())
-            #list_mean = torch.mean(torch.tensor(IoU_list))
-            #eval_totals += list_mean if not math.isnan(list_mean) else 0.0
-                #eval_individual_data.append(IoU_list)
-                # Calculate mean and append to eval_individual_data
-                eval_individual_data.append(IoU_list)
+    
+    gaussian_noise = torch.randn_like(img)
+    
+    if absolute:
+        gaussian_noise = torch.abs(gaussian_noise) # Take absolute values of gradients
+    if grayscale: # Convert to grayscale, saves vram and computation time for plaus_eval
+        gaussian_noise = torch.sum(gaussian_noise, 1, keepdim=True)
+    if norm:
+        if keepmean:
+            attmean = torch.mean(gaussian_noise)
+            attmin = torch.min(gaussian_noise)
+            attmax = torch.max(gaussian_noise)
+        gaussian_noise = normalize_batch(gaussian_noise) # Normalize attribution maps per image in batch
+        if keepmean:
+            gaussian_noise -= gaussian_noise.mean()
+            gaussian_noise += (attmean / (attmax - attmin))
+        
+    return gaussian_noise
 
+#Corners must be true here
+def get_plaus_score(imgs, targets_out, attr, debug=False, corners=True):
+    """
+    Calculates the plausibility score based on the given inputs. This is a 
+    metric that evaluates how well the model's attribution maps align with 
+    its own predictions of where the bounding boxes are.
+
+    Args:
+        imgs (torch.Tensor): The input images.
+        targets_out (torch.Tensor): The output targets.
+        attr (torch.Tensor): The attribute tensor.
+        debug (bool, optional): Whether to enable debug mode. Defaults to False.
+
+    Returns:
+        torch.Tensor: The plausibility score.
+    """
+    
+    # Resize images
+    imgs_resized = torch.nn.functional.interpolate(imgs, size=(480, 480), mode='bilinear', align_corners=False)
+
+    # Resize attribution maps
+    attr_resized = torch.nn.functional.interpolate(attr, size=(480, 480), mode='bilinear', align_corners=False)
+
+    target_inds = targets_out[:, 0].int().to(imgs_resized.device)
+    xyxy_batch = targets_out[:, 2:6].to(imgs_resized.device)# * pre_gen_gains[out_num]
+    num_pixels = torch.tile(torch.tensor([imgs_resized.shape[2], imgs_resized.shape[3], imgs_resized.shape[2], imgs_resized.shape[3]], device=imgs_resized.device), (xyxy_batch.shape[0], 1))
+    xyxy_corners = (corners_coords_batch(xyxy_batch) * num_pixels).int()
+    co = xyxy_corners
+    if corners:
+        co = targets_out[:, 2:6].int()
+    coords_map = torch.zeros_like(attr_resized, dtype=torch.bool)
+    x1, x2 = co[:,1], co[:,3]
+    y1, y2 = co[:,0], co[:,2]
+    
+    for ic in range(co.shape[0]):
+        coords_map[target_inds[ic], :,x1[ic]:x2[ic],y1[ic]:y2[ic]] = True
+    
+    if torch.isnan(attr_resized).any():
+        attr_resized = torch.nan_to_num(attr_resized, nan=0.0)
     if debug:
-        return torch.tensor(eval_totals).requires_grad_(True), plaus_num_nan
-    else:
-        return eval_individual_data
+        for i in range(len(coords_map)):
+            coords_map3ch = torch.cat([coords_map[i][:1], coords_map[i][:1], coords_map[i][:1]], dim=0)
+            coords_map3ch = coords_map3ch.to(imgs_resized[i].device)
+            test_bbox = torch.zeros_like(imgs_resized[i])
+            test_bbox[coords_map3ch] = imgs_resized[i][coords_map3ch]
+            imshow(test_bbox, save_path='figs/test_bbox')
+            imshow(imgs_resized[i], save_path='figs/im0')
+            imshow(attr_resized[i], save_path='figs/attr')
+    
+    IoU_num = (torch.sum(attr_resized[coords_map]))
+    IoU_denom = torch.sum(attr_resized)
+    IoU_ = (IoU_num / IoU_denom)
+    plaus_score = IoU_
+    if torch.isnan(plaus_score).any():
+        plaus_score = torch.tensor(0.0, device=imgs_resized.device)
+    return plaus_score
+
+def point_in_polygon(poly, grid):
+    # t0 = time.time()
+    num_points = poly.shape[0]
+    j = num_points - 1
+    oddNodes = torch.zeros_like(grid[..., 0], dtype=torch.bool)
+    for i in range(num_points):
+        cond1 = (poly[i, 1] < grid[..., 1]) & (poly[j, 1] >= grid[..., 1])
+        cond2 = (poly[j, 1] < grid[..., 1]) & (poly[i, 1] >= grid[..., 1])
+        cond3 = (grid[..., 0] - poly[i, 0]) < (poly[j, 0] - poly[i, 0]) * (grid[..., 1] - poly[i, 1]) / (poly[j, 1] - poly[i, 1])
+        oddNodes = oddNodes ^ (cond1 | cond2) & cond3
+        j = i
+    # t1 = time.time()
+    # print(f'point in polygon time: {t1-t0}')
+    return oddNodes
+    
+def point_in_polygon_gpu(poly, grid):
+    num_points = poly.shape[0]
+    i = torch.arange(num_points)
+    j = (i - 1) % num_points
+    # Expand dimensions
+    # t0 = time.time()
+    poly_expanded = poly.unsqueeze(-1).unsqueeze(-1).expand(-1, -1, grid.shape[0], grid.shape[0])
+    # t1 = time.time()
+    cond1 = (poly_expanded[i, 1] < grid[..., 1]) & (poly_expanded[j, 1] >= grid[..., 1])
+    cond2 = (poly_expanded[j, 1] < grid[..., 1]) & (poly_expanded[i, 1] >= grid[..., 1])
+    cond3 = (grid[..., 0] - poly_expanded[i, 0]) < (poly_expanded[j, 0] - poly_expanded[i, 0]) * (grid[..., 1] - poly_expanded[i, 1]) / (poly_expanded[j, 1] - poly_expanded[i, 1])
+    # t2 = time.time()
+    oddNodes = torch.zeros_like(grid[..., 0], dtype=torch.bool)
+    cond = (cond1 | cond2) & cond3
+    # t3 = time.time()
+    # efficiently perform xor using gpu and avoiding cpu as much as possible
+    c = []
+    while len(cond) > 1: 
+        if len(cond) % 2 == 1: # odd number of elements
+            c.append(cond[-1])
+            cond = cond[:-1]
+        cond = torch.bitwise_xor(cond[:int(len(cond)/2)], cond[int(len(cond)/2):])
+    for c_ in c:
+        cond = torch.bitwise_xor(cond, c_)
+    oddNodes = cond
+    # t4 = time.time()
+    # for c in cond:
+    #     oddNodes = oddNodes ^ c
+    # print(f'expand time: {t1-t0} | cond123 time: {t2-t1} | cond logic time: {t3-t2} |  bitwise xor time: {t4-t3}')
+    # print(f'point in polygon time gpu: {t4-t0}')
+    # oddNodes = oddNodes ^ (cond1 | cond2) & cond3
+    return oddNodes
+
+
+def bitmap_for_polygon(poly, h, w):
+    y = torch.arange(h).to(poly.device).float()
+    x = torch.arange(w).to(poly.device).float()
+    grid_y, grid_x = torch.meshgrid(y, x)
+    grid = torch.stack((grid_x, grid_y), dim=-1)
+    bitmap = point_in_polygon(poly, grid)
+    return bitmap.unsqueeze(0)
+
 
 def corners_coords(center_xywh):
     center_x, center_y, w, h = center_xywh
     x = center_x - w/2
     y = center_y - h/2
     return torch.tensor([x, y, x+w, y+h])
-    
-def generate_vanilla_grad(model, input_tensor, loss_func = None, 
-                          targets=None, metric=None, out_num = 1, 
-                          norm=False, device='cpu'):    
-    """
-    Computes the vanilla gradient of the input tensor with respect to the output of the given model.
 
+def corners_coords_batch(center_xywh):
+    center_x, center_y = center_xywh[:,0], center_xywh[:,1]
+    w, h = center_xywh[:,2], center_xywh[:,3]
+    x = center_x - w/2
+    y = center_y - h/2
+    return torch.stack([x, y, x+w, y+h], dim=1)
+    
+def normalize_batch(x):
+    """
+    Normalize a batch of tensors along each channel.
+    
     Args:
-        model (torch.nn.Module): The model to compute the gradient with respect to.
-        input_tensor (torch.Tensor): The input tensor to compute the gradient for.
-        loss_func (callable, optional): The loss function to use. If None, the gradient is computed with respect to the output tensor.
-        targets (torch.Tensor, optional): The target tensor to use with the loss function. Defaults to None.
-        metric (callable, optional): The metric function to use with the loss function. Defaults to None.
-        out_num (int, optional): The index of the output tensor to compute the gradient with respect to. Defaults to 1.
-        norm (bool, optional): Whether to normalize the attribution map. Defaults to False.
-        device (str, optional): The device to use for computation. Defaults to 'cpu'.
-
+        x (torch.Tensor): Input tensor of shape (batch_size, channels, height, width).
+        
     Returns:
-        torch.Tensor: The attribution map computed as the gradient of the input tensor with respect to the output tensor.
+        torch.Tensor: Normalized tensor of the same shape as the input.
     """
-    # maybe add model.train() at the beginning and model.eval() at the end of this function
-
-    # Set requires_grad attribute of tensor. Important for computing gradients
-    input_tensor.requires_grad = True
+    mins = torch.zeros((x.shape[0], *(1,)*len(x.shape[1:])), device=x.device)
+    maxs = torch.zeros((x.shape[0], *(1,)*len(x.shape[1:])), device=x.device)
+    for i in range(x.shape[0]):
+        mins[i] = x[i].min()
+        maxs[i] = x[i].max()
+    x_ = (x - mins) / (maxs - mins)
     
-    # Zero gradients
-    model.zero_grad()
-
-    # Forward pass
-    train_out = model(input_tensor) # training outputs (no inference outputs in train mode)
-    
-    # train_out[1] = torch.Size([4, 3, 80, 80, 7]) HxWx(#anchorxC) cls (class probabilities)
-    # train_out[0] = torch.Size([4, 3, 160, 160, 7]) HxWx(#anchorx4) reg (location and scaling)
-    # train_out[2] = torch.Size([4, 3, 40, 40, 7]) HxWx(#anchorx1) obj (objectness score or confidence)
-    
-    out_num = out_num - 1
-    
-    if loss_func is None:
-        grad_wrt = train_out[out_num]
-        grad_wrt_outputs = torch.ones_like(grad_wrt)
-    else:
-        loss, loss_items = loss_func(train_out, targets.to(device), input_tensor, metric=metric)  # loss scaled by batch_size
-        grad_wrt = loss
-        grad_wrt_outputs = None
-        # loss.backward(retain_graph=True, create_graph=True)
-        # gradients = input_tensor.grad
-    
-    gradients = torch.autograd.grad(grad_wrt, input_tensor, 
-                                        grad_outputs=grad_wrt_outputs, 
-                                        retain_graph=True, create_graph=True)
-
-    # Convert gradients to numpy array
-    gradients = gradients[0].detach().cpu().numpy()
-
-    if norm:
-        # Take absolute values of gradients
-        gradients = np.absolute(gradients)
-
-        # Sum across color channels
-        attribution_map = np.sum(gradients, axis=0)
-
-        # Normalize attribution map
-        attribution_map /= np.max(attribution_map)
-    else:
-        # Sum across color channels
-        attribution_map = gradients
-
-    # Set model back to training mode
-    # model.train()
-    
-    return torch.tensor(attribution_map, dtype=torch.float32, device=device)
+    return x_

@@ -19,16 +19,15 @@ from utils.general import check_img_size, check_imshow, non_max_suppression, app
     scale_coords, xyxy2xywh, set_logging
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
-# from smooth_grad import generate_vanilla_grad
-from plaus_functs import generate_vanilla_grad, eval_plausibility, generate_other_grad
+from plaus_functs import get_plaus_score, get_gradient
 
-def detect(opt, is_stream, outputNum=1, norm=False, save_img=False):
+def detect(opt, is_stream, outputNum=1, norm=False, save_img=False, debug=False):
     source, weights, view_img, save_txt, imgsz, trace = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size, not opt.no_trace
     save_img = not opt.nosave and not source.endswith('.txt')  # save inference images
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
         ('rtsp://', 'rtmp://', 'http://', 'https://'))
 
-    eval_individual_data = []
+    t0 = time.time()
 
     # Directories
     save_dir = Path(Path(opt.project) / opt.name, exist_ok=opt.exist_ok)
@@ -50,7 +49,6 @@ def detect(opt, is_stream, outputNum=1, norm=False, save_img=False):
 
     if half:
         model.half()  # to FP16
-    
     
     # Second-stage classifier
     classify = False
@@ -77,7 +75,6 @@ def detect(opt, is_stream, outputNum=1, norm=False, save_img=False):
     old_img_w = old_img_h = imgsz
     old_img_b = 1
 
-    t0 = time.time()
     for path, img, im0s, vid_cap in dataset:
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
@@ -129,18 +126,22 @@ def detect(opt, is_stream, outputNum=1, norm=False, save_img=False):
                 for c in det[:, -1].unique():
                     n = (det[:, -1] == c).sum()  # detections per class
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
+
+                img = img.requires_grad_(True)
+                out, train_out = model(img, augment=opt.augment)
                 if dataset.mode == 'image':
                     model.train()
-                    smooth_gradient1 = generate_vanilla_grad(model=model, input_tensor=img, out_num=1, targets=None, norm=norm, device=device)
+                    smooth_gradient1 = get_gradient(img, grad_wrt=train_out[0], norm=True, keepmean=True, absolute=True, grayscale=True)
                     torchvision.utils.save_image(smooth_gradient1,fp="outputs\\runs\\detect\\exp\\smoothGrad0.jpg")
-                    smooth_gradient2 = generate_vanilla_grad(model=model, input_tensor=img, out_num=2, targets=None, norm=norm, device=device)
+                    smooth_gradient2 = get_gradient(img, grad_wrt=train_out[1], norm=True, keepmean=True, absolute=True, grayscale=True)
                     torchvision.utils.save_image(smooth_gradient2,fp="outputs\\runs\\detect\\exp\\smoothGrad1.jpg")
-                    smooth_gradient3 = generate_vanilla_grad(model=model, input_tensor=img, out_num=3, targets=None, norm=norm, device=device)
+                    smooth_gradient3 = get_gradient(img, grad_wrt=train_out[2], norm=True, keepmean=True, absolute=True, grayscale=True)
                     torchvision.utils.save_image(smooth_gradient3,fp="outputs\\runs\\detect\\exp\\smoothGrad2.jpg")
                     model.eval()
                 
+                #This represents the bounding boxes
                 targets = []
-                
+
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
                     if save_txt:  # Write to file
@@ -149,21 +150,25 @@ def detect(opt, is_stream, outputNum=1, norm=False, save_img=False):
                         with open(txt_path + '.txt', 'a') as f:
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
                     xyxy = torch.tensor(xyxy)
-                    target = [int(cls.item())] + xyxy.tolist()
-                    targets.append(target)
 
                     if save_img or view_img:  # Add bbox to image
                         label = f'{names[int(cls)]} {conf:.2f}'
                         allDetcs.append(label)
                     if (names[int(cls)] not in labels or labels[names[int(cls)]] < conf.item()) and conf is not None:
                         plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
-                
-                attr_tensor = generate_other_grad(model=model, input_tensor=img, device=device)
-                print("Targets:", targets)
-                print("Attr:", len(attr_tensor))
-                all_plaus = eval_plausibility(imgs=[im0], targets=targets, attr_tensor=attr_tensor, device=device)
-                for plaus in all_plaus:
-                    print(plaus[0].item())
+
+                    target = [0, int(cls.item())] + xyxy.tolist()
+                    targets.append(target)
+
+                #Print values for debugging
+                if debug:
+                    print("Image shape:", img.shape, " dtype:", img.dtype)
+                    print("Gradient shape:", smooth_gradient1.shape, " dtype:", smooth_gradient1.dtype)
+                    print("Targets:", torch.tensor(targets), " dtype:", torch.tensor(targets).dtype)
+
+                # #Get and Print score
+                plaus_score = get_plaus_score(imgs=img, targets_out=torch.tensor(targets), attr=torch.tensor(smooth_gradient1))
+                print("Plausibility Score:", plaus_score)
 
             # Print time (inference + NMS)
             print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}ms) NMS')
@@ -197,9 +202,11 @@ def detect(opt, is_stream, outputNum=1, norm=False, save_img=False):
         s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
         print(f"Results saved to {save_dir}{s}")
     if dataset.mode == 'image':
-        formatted_time = f"{time.time() - t0:.2f}"
-        print(f'Done. ({formatted_time}s)')
+        detection_time = f"{time.time() - t0:.2f}"
+        plaus = round(plaus_score.item(), 5)
+        print(f'Done. Plausibility: ({plaus})')
+        print(f'Done. ({detection_time}s)')
         print(allDetcs)
-        return [str(save_path), "outputs\\runs\\detect\\exp\\smoothGrad" + str(int(int(outputNum) -1)) + ".jpg", allDetcs, formatted_time]
+        return [str(save_path), "outputs\\runs\\detect\\exp\\smoothGrad" + str(int(int(outputNum) -1)) + ".jpg", allDetcs, plaus, detection_time]
     else:
         return str(save_path)

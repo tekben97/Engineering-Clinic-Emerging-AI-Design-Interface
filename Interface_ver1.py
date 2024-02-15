@@ -7,7 +7,7 @@ sys.path.append('Engineering-Clinic-Emerging-AI-Design-Interface/Interface_Depen
 sys.path.append('Engineering-Clinic-Emerging-AI-Design-Interface/yolov7-main')
 sys.path.append('./')  # to run '$ python *.py' files in subdirectories
 
-from run_methods import run_image, run_video, correct_video #run_stream
+from run_methods import run_image, run_video, correct_video
 
 # Gradio Interface Code
 with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
@@ -242,7 +242,7 @@ with gr.Blocks(title="YOLO7 Interface",theme=gr.themes.Base()) as demo:
     vid_com_input.upload(correct_video, inputs=[vid_com_input], outputs=[vid_com_input])
     vid_web_input.upload(correct_video, inputs=[vid_web_input], outputs=[vid_web_input])
     conv_layer.input(change_conv_layer, conv_layer, im_conv_output)
-    vid_streaming.stream(run_stream, inputs=[vid_streaming, source_type, inf_size, obj_conf_thr, iou_thr, conv_layer, agnostic_nms, output_map, video_stream, norm], outputs=[im_output])
+    #vid_streaming.stream(run_stream, inputs=[vid_streaming, source_type, inf_size, obj_conf_thr, iou_thr, conv_layer, agnostic_nms, output_map, video_stream, norm], outputs=[im_output])
     output_map.input(change_output_num, output_map, im_smooth_output)
     demo.load(change_file_type, show_progress=True, inputs=[file_type, source_type, video_stream], outputs=[im_tot_row, vid_tot_row, im_tot_start, vid_tot_start, vid_com_row, vid_web_row, im_com_row, im_web_row, vid_web_start, vid_com_start, im_web_start, im_com_start, conv_layer, video_stream, vid_streaming, vid_web_input, im_out_row, im_conv_output, im_smooth_output, vid_output, output_map] )
 
