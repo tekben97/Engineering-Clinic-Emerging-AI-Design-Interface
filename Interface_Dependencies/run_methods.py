@@ -27,7 +27,7 @@ def correct_video(video):
     Returns:
         str: The file path of the output video
     """
-    os.system("ffmpeg -i {file_str} -y -vcodec libx264 -acodec aac {file_str}.mp4".format(file_str = video))
+    os.system("ffmpeg.exe -i {file_str} -y -vcodec libx264 -acodec aac {file_str}.mp4".format(file_str = video))
     return video + ".mp4"
 
 def run_all(source_type, im, vid, src, inf_size=640, obj_conf_thr=0.25, iou_thr=0.45, conv_layer=1, agnostic_nms=False, outputNum=1, is_stream=False, norm=False, weights='yolov7.pt', debug=False):
@@ -138,7 +138,7 @@ def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layer, agnostic_
         return [save_dir, None, None, None, None, None]
     total_time = round(float(time.time() - t0) + float(formatted_time), 2)
     #Formatted_time is the detection time (this is for future optimisation)
-    return [save_dir, new_dir, smooth_dir, labels, plaus, str(total_time) + " - " + str(formatted_time), None]  # added info
+    return [save_dir, new_dir, smooth_dir, labels, plaus, str(total_time) + " - " + str(formatted_time), None, image]  # added info
 
 def run_video(video, src, inf_size, obj_conf_thr, iou_thr, agnostic_nms, is_stream, outputNum, norm, weights, debug=False):
     """

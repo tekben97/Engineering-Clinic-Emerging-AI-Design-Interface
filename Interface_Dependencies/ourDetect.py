@@ -166,9 +166,11 @@ def detect(opt, is_stream, outputNum=1, norm=False, save_img=False, debug=False)
                     print("Gradient shape:", smooth_gradient1.shape, " dtype:", smooth_gradient1.dtype)
                     print("Targets:", torch.tensor(targets), " dtype:", torch.tensor(targets).dtype)
 
-                # #Get and Print score
-                plaus_score = get_plaus_score(imgs=img, targets_out=torch.tensor(targets), attr=torch.tensor(smooth_gradient1))
-                print("Plausibility Score:", plaus_score)
+                # Get and Print score if image TODO: Fix so that plaus scores are generated for each frame,
+                # saved to an array and avg is taken.
+                if dataset.mode == 'image':
+                    plaus_score = get_plaus_score(imgs=img, targets_out=torch.tensor(targets), attr=torch.tensor(smooth_gradient1))
+                    print("Plausibility Score:", plaus_score)
 
             # Print time (inference + NMS)
             print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}ms) NMS')
