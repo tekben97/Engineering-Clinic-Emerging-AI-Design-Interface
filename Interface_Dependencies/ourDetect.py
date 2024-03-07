@@ -211,4 +211,6 @@ def detect(opt, is_stream, outputNum=1, norm=False, save_img=False, debug=False)
         print(allDetcs)
         return [str(save_path), "outputs\\runs\\detect\\exp\\smoothGrad" + str(int(int(outputNum) -1)) + ".jpg", allDetcs, plaus, detection_time]
     else:
-        return str(save_path)
+        detection_time = f"{time.time() - t0:.2f}"
+        print(f'Done. ({detection_time}s)')
+        return [str(save_path), None, None, None, detection_time]

@@ -27,10 +27,14 @@ def correct_video(video):
     Returns:
         str: The file path of the output video
     """
-    os.system("ffmpeg.exe -i {file_str} -y -vcodec libx264 -acodec aac {file_str}.mp4".format(file_str = video))
-    return video + ".mp4"
+    if video.endswith(".mp4"):
+        return video
 
-def run_all(source_type, im, vid, src, inf_size=640, obj_conf_thr=0.25, iou_thr=0.45, conv_layer=1, agnostic_nms=False, outputNum=1, is_stream=False, norm=False, weights='yolov7.pt', debug=False):
+    else:
+        os.system("ffmpeg.exe -i {file_str} -y -vcodec libx264 -acodec aac {file_str}.mp4".format(file_str = video))
+        return video + ".mp4"
+
+def run_all(source_type, im, vid, src, inf_size=640, obj_conf_thr=0.25, iou_thr=0.45, conv_layer=1, agnostic_nms=False, outputNum=1, is_stream=False, norm=False, weights='yolov7.pt', debug=True):
     """
     Takes an image or video (from upload or webcam), and outputs the yolov7 boxed output, and maybe the convolutional layers and gradient outputs
 
@@ -138,7 +142,7 @@ def run_image(image, src, inf_size, obj_conf_thr, iou_thr, conv_layer, agnostic_
         return [save_dir, None, None, None, None, None]
     total_time = round(float(time.time() - t0) + float(formatted_time), 2)
     #Formatted_time is the detection time (this is for future optimisation)
-    return [save_dir, new_dir, smooth_dir, labels, plaus, str(total_time) + " - " + str(formatted_time), None, image]  # added info
+    return [save_dir, new_dir, smooth_dir, labels, plaus, str(total_time) + " - " + str(formatted_time), None, image, None]  # added info
 
 def run_video(video, src, inf_size, obj_conf_thr, iou_thr, agnostic_nms, is_stream, outputNum, norm, weights, debug=False):
     """
@@ -160,6 +164,7 @@ def run_video(video, src, inf_size, obj_conf_thr, iou_thr, agnostic_nms, is_stre
     Returns:
         str: The file path of the output video
     """
+    t0 = time.time()
     obj_conf_thr = float(obj_conf_thr)
     iou_thr = float(iou_thr)
     agnostic_nms = bool(agnostic_nms)
@@ -197,8 +202,10 @@ def run_video(video, src, inf_size, obj_conf_thr, iou_thr, agnostic_nms, is_stre
     with torch.no_grad():
         if opt.update:  # update all models (to fix SourceChangeWarning)
             for opt.weights in ['yolov7.pt']:
-                save_dir = detect(opt, outputNum=outputNum, is_stream=is_stream, norm=norm)
+                save_dir, smooth_dir, labels, plaus, formatted_time = detect(opt, outputNum=outputNum, is_stream=is_stream, norm=norm)
                 strip_optimizer(opt.weights)
         else:
-            save_dir = detect(opt, outputNum=outputNum, is_stream=is_stream, norm=norm)
-    return [None, None, None, None, None, save_dir]
+            save_dir, smooth_dir, labels, plaus, formatted_time = detect(opt, outputNum=outputNum, is_stream=is_stream, norm=norm)
+
+    total_time = round(float(time.time() - t0) + float(formatted_time), 2)
+    return [None, None, None, None, None, str(total_time) + " - " + str(formatted_time), save_dir, None, video]  # added info

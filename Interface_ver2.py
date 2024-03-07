@@ -36,22 +36,22 @@ with gr.Blocks(title="yolov7 Interface",theme=gr.themes.Base()) as demo:
     with gr.Row() as inputs_outputs:
         # Default input image: Visible, Upload from computer
         input_im = gr.Image(source="upload",type='filepath',label="Input Image",
-                            show_download_button=True,show_share_button=True,interactive=True,visible=True)
+                            show_download_button=True,show_share_button=True,interactive=True,visible=False)
         # Default Boxed output image: Visible
         output_box_im = gr.Image(type='filepath',label="Output Image",
-                             show_download_button=True,show_share_button=True,interactive=False,visible=True)
+                             show_download_button=True,show_share_button=True,interactive=False,visible=False)
         # Defualt Convolutional output image: Visible
         output_conv_im = gr.Image(type='filepath',label="Output Convolution",
-                                  show_download_button=True,show_share_button=True,interactive=False,visible=True)
+                                  show_download_button=True,show_share_button=True,interactive=False,visible=False)
         # Default Gradient output image: Visible
         output_grad_im = gr.Image(type='filepath',label="Output Smooth Gradient",
-                                  show_download_button=True,show_share_button=True,interactive=False,visible=True)
+                                  show_download_button=True,show_share_button=True,interactive=False,visible=False)
         # Default label output textbox: Visible
         labels = gr.Textbox(label='Top Predictions:', value = "")
         # Default plaus output textbox: Visible
         plaus = gr.Textbox(label = "Plausibility Score:", value="")
         # Default time output textbox: Visible
-        formatted_time = gr.Textbox(label = 'Total and Detection Time in Seconds:', value = "")
+        formatted_time = gr.Textbox(label = 'Total and Detection Time in Seconds:', value = "",scale=6)
         
         # Default input video: Not visible, Upload from computer
         input_vid =  gr.Video(source="upload",label="Input Video",
@@ -65,8 +65,8 @@ with gr.Blocks(title="yolov7 Interface",theme=gr.themes.Base()) as demo:
     # Row for start, clear and demo buttons
     with gr.Row() as buttons:
         start_but = gr.Button(value="Start")
-        demo1_but = gr.Button(value="Demo1")
-        #demo2_but = gr.Button(label="Demo2")
+        demo1_but = gr.Button(value="ImageDemo")
+        demo2_but = gr.Button(value="VideoDemo")
         clear_but = gr.ClearButton(value='Clear All',components=clear_comp_list,
                    interactive=True,visible=True)
         
@@ -81,7 +81,7 @@ with gr.Blocks(title="yolov7 Interface",theme=gr.themes.Base()) as demo:
         # Agnostic NMS boolean
         agnostic_nms = gr.Checkbox(label='Agnostic NMS',value=True)
         # Normailze gradient boolean
-        norm = gr.Checkbox(label='Normalize Gradient',value=False,visible=True)
+        norm = gr.Checkbox(label='Normalize Gradient',value=False,visible=False)
         # Weights File Upload
         weights = gr.File(label='Weights File',type='file',file_count='single',file_types=["pt"],value="weights/yolov7.pt")   
     
@@ -104,16 +104,16 @@ with gr.Blocks(title="yolov7 Interface",theme=gr.themes.Base()) as demo:
                     video_stream: gr.Checkbox(visible=False, value=False),
                     output_map: gr.Slider(visible=True),
                     input_im: gr.Image(source="upload",type='filepath',label="Input Image",
-                            show_download_button=True,show_share_button=True,interactive=True,visible=True,streaming=False),
-                    output_box_im: gr.Image(visible=True),
-                    output_conv_im: gr.Image(visible=True),
-                    output_grad_im: gr.Image(visible=True),
+                            show_download_button=True,show_share_button=True,interactive=True,visible=True,streaming=False,scale=3),
+                    output_box_im: gr.Image(visible=True,scale=3),
+                    output_conv_im: gr.Image(visible=True,scale=3),
+                    output_grad_im: gr.Image(visible=True,scale=3),
                     input_vid: gr.Video(visible=False),
                     output_box_vid: gr.Video(visible=False),
                     norm: gr.Checkbox(visible=True),
-                    labels: gr.Textbox(visible=True),
-                    plaus: gr.Textbox(visible=True),
-                    formatted_time: gr.Textbox(visible=True)
+                    labels: gr.Textbox(visible=True,scale=1),
+                    plaus: gr.Textbox(visible=True,scale=1),
+                    formatted_time: gr.Textbox(visible=True,scale=1)
                 }
             elif source == "Webcam":
                 return {
@@ -121,10 +121,10 @@ with gr.Blocks(title="yolov7 Interface",theme=gr.themes.Base()) as demo:
                     video_stream: gr.Checkbox(visible=False, value=False),
                     output_map: gr.Slider(visible=True),
                     input_im: gr.Image(type='pil',source="webcam",label="Input Image",
-                                       visible=True,interactive=True,streaming=False),
-                    output_box_im: gr.Image(visible=True),
-                    output_conv_im: gr.Image(visible=True),
-                    output_grad_im: gr.Image(visible=True),
+                                       visible=True,interactive=True,streaming=False,scale=3),
+                    output_box_im: gr.Image(visible=True,scale=3),
+                    output_conv_im: gr.Image(visible=True,scale=3),
+                    output_grad_im: gr.Image(visible=True,scale=3),
                     input_vid: gr.Video(visible=False),
                     output_box_vid: gr.Video(visible=False),
                     norm: gr.Checkbox(visible=True),
@@ -143,13 +143,14 @@ with gr.Blocks(title="yolov7 Interface",theme=gr.themes.Base()) as demo:
                     output_conv_im: gr.Image(visible=False),
                     output_grad_im: gr.Image(visible=False),
                     input_vid: gr.Video(source="upload",label="Input Video",
-                              show_share_button=True,interactive=True,visible=True),
-                    output_box_vid: gr.Video(label="Output Video",show_share_button=True,visible=True),
+                              show_share_button=True,interactive=True,visible=True,scale=6),
+                    output_box_vid: gr.Video(label="Output Video",show_share_button=True,visible=True,scale=6),
                     norm: gr.Checkbox(visible=False),
                     labels: gr.Textbox(visible=False),
-                    plaus: gr.Textbox(visible=True),
-                    formatted_time: gr.Textbox(visible=False)
+                    plaus: gr.Textbox(visible=False),
+                    formatted_time: gr.Textbox(visible=True, scale=0)
                 }
+            #TODO: Fix possible streaming issues
             elif source == "Webcam":
                 if is_stream:
                     return {
@@ -245,26 +246,25 @@ with gr.Blocks(title="yolov7 Interface",theme=gr.themes.Base()) as demo:
         """
         Run a test video file as a demo 
         """
-        #TODO - edit this to be a video or something
         file_type = gr.Radio(label="File Type",info="Choose 'Image' if you are uploading an image, Choose 'Video' if you are uploading a video",
-                             choices=['Image','Video'],value='Image',show_label=True,interactive=True,visible=True)
-        input_im = gr.Image(type='filepath',label="Input Image",value="references\\inference\\images\\bus.jpg",
-                            show_download_button=True,show_share_button=True,interactive=True,visible=True)
+                             choices=['Image','Video'],value='Video',show_label=True,interactive=True,visible=False)
+        input_im = gr.Image(type='filepath',label="Input Image",
+                            show_download_button=True,show_share_button=True,interactive=True,visible=False)
         input_vid =  gr.Video(source="upload",label="Input Video",
-                              show_share_button=True,interactive=True,visible=False)
+                              show_share_button=True,interactive=True,visible=False,value="references\\inference\\videos\\ducks.mp4")
         source_type = gr.Radio(label="Source Type",info="Choose 'Computer' if you are uploading from your computer, Choose 'Webcam' if you would like to use your webcam",
-                             choices=['Computer','Webcam'],value='Computer',show_label=True,interactive=True,visible=True)
-        inf_size = gr.Number(label='Inference Size (pixels)',value=640,precision=0)
-        obj_conf_thr = gr.Number(label='Object Confidence Threshold',value=0.25)
-        iou_thr = gr.Number(label='IOU threshold for NMS',value=0.45)
+                             choices=['Computer','Webcam'],value='Computer',show_label=True,interactive=True,visible=False)
+        inf_size = gr.Number(label='Inference Size (pixels)',value=640,precision=0,visible=False)
+        obj_conf_thr = gr.Number(label='Object Confidence Threshold',value=0.25,visible=False)
+        iou_thr = gr.Number(label='IOU threshold for NMS',value=0.45,visible=False)
         conv_layer = gr.Slider(label="Convolution Layer",info="Choose a whole number from 1 to 17 to see the corresponding convolutional layer",
-                               minimum=1,maximum=17,value=1,interactive=True,step=1,show_label=True)
-        agnostic_nms = gr.Checkbox(label='Agnostic NMS',value=True)
+                               minimum=1,maximum=17,value=1,interactive=True,step=1,show_label=True,visible=False)
+        agnostic_nms = gr.Checkbox(label='Agnostic NMS',value=True,visible=False)
         output_map = gr.Slider(label="Map Output Number",info="Choose a whole number from 1 to 3 to see the corresponding attribution map",
-                               minimum=1,maximum=3,value=1,interactive=True,step=1,show_label=True)
+                               minimum=1,maximum=3,value=1,interactive=True,step=1,show_label=True,visible=False)
         video_stream = gr.Checkbox(label="Stream from webcam?",info="Check this box if you would like to stream from your webcam",value=False,show_label=True,interactive=True,visible=False)
-        norm = gr.Checkbox(label='Normalize Gradient',value=False,visible=True)
-        weights = gr.File(label='Weights File',type='file',file_count='single',file_types=["pt"],value="weights/yolov7.pt")
+        norm = gr.Checkbox(label='Normalize Gradient',value=False,visible=False)
+        weights = gr.File(label='Weights File',type='file',file_count='single',file_types=["pt"],value="weights/yolov7.pt",visible=False)
 
         demo2_inputs = [file_type, input_im, input_vid, source_type, 
                   inf_size, obj_conf_thr, iou_thr, conv_layer, 
@@ -282,7 +282,7 @@ with gr.Blocks(title="yolov7 Interface",theme=gr.themes.Base()) as demo:
                   agnostic_nms, output_map, video_stream, norm, weights]
     
     # List of gradio components that are output from the run_all method (when start button is clicked)
-    run_outputs = [output_box_im, output_conv_im, output_grad_im, labels, plaus, formatted_time, output_box_vid, input_im]
+    run_outputs = [output_box_im, output_conv_im, output_grad_im, labels, plaus, formatted_time, output_box_vid, input_im, input_vid]
     
     # When these settings are changed, the change_file_type method is called
     file_type.input(change_file_type, show_progress=True, inputs=[file_type, source_type, video_stream], outputs=change_comp_list)
@@ -293,7 +293,7 @@ with gr.Blocks(title="yolov7 Interface",theme=gr.themes.Base()) as demo:
     # When demo1 button is clicked, run the function with stored params
     demo1_but.click(run_all, inputs=demo1(), outputs=run_outputs)
     # # When demo2 button is clicked, run the function with stored params
-    # demo2_but.click(run_all, inputs=demo2_in, outputs=run_outputs)
+    demo2_but.click(run_all, inputs=demo2(), outputs=run_outputs)
     # When video is uploaded, the correct_video method is called
     input_vid.upload(correct_video, inputs=[input_vid], outputs=[input_vid])
     # When the convolutional layer setting is changed, the change_conv_layer method is called
